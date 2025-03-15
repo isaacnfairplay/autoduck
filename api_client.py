@@ -1,0 +1,32 @@
+import os
+import anthropic
+import re
+from dotenv import load_dotenv
+
+load_dotenv()
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
+
+def generate_response(prompt: str, system_prompt: str, max_tokens: int = 100) -> str:
+    """Generate a response from the Anthropic API."""
+    response = client.messages.create(
+        model=MODEL,
+        system=system_prompt,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens
+    )
+    return response.content[0].text.strip()
+
+def extract_code(response: str) -> str:
+    """Extract Python code from a response string."""
+    match = re.search(r"```python(.*?)```", response, re.DOTALL)
+    return match.group(1).strip() if match else response.strip()
+
+if __name__ == "__main__":
+    system_prompt = "You are an AI assistant for DuckDB documentation."
+    # Test response generation
+    response = generate_response("Generate a DuckDB query example", system_prompt)
+    print(f"Response: {response}")
+    # Test code extraction
+    code = extract_code(response)
+    print(f"Extracted Code: {code}")
