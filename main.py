@@ -1,7 +1,6 @@
 import time
 import os
 from queue import Queue
-import logging
 from email_handler import send_email, get_email_input, generate_session_id
 from context_manager import load_context, save_context, update_system_prompt
 from code_executor import SnippetBuilder
