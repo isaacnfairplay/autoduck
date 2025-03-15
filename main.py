@@ -1,6 +1,7 @@
 import time
-import os
 from queue import Queue
+import logging
+import os # for env
 from email_handler import send_email, get_email_input, generate_session_id
 from context_manager import load_context, save_context, update_system_prompt
 from code_executor import SnippetBuilder
@@ -61,7 +62,14 @@ def main():
                     current_session_id = generate_session_id()
                 subject = f"DuckDB Documentation Task Request [{current_session_id}]"
                 
-                sent_time = send_email(subject, "Please provide the next task or feedback.", os.getenv("USER_EMAIL"))
+                # Include completed tasks in the email body
+                completed_tasks = context.get("completed_tasks", [])
+                email_body = "Please provide the next task or feedback.\n\n"
+                if completed_tasks:
+                    email_body += "Completed Tasks:\n" + "\n".join(f"- {task}" for task in completed_tasks) + "\n\n"
+                email_body += "Awaiting your input for the next step."
+                
+                sent_time = send_email(subject, email_body, os.getenv("USER_EMAIL"))
                 reply = get_email_input(current_session_id, os.getenv("USER_EMAIL"), sent_time)
                 
                 if not reply:

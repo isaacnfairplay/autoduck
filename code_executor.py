@@ -2,7 +2,8 @@ import duckdb
 from typing import Optional, Literal, TypeAlias
 import os
 import logging
-from datetime import datetime
+import inspect
+from datetime import datetime  # Fixed import
 
 logger = logging.getLogger(__name__)
 SNIPPET_DIR = "generated_snippets"
@@ -35,13 +36,30 @@ class SnippetBuilder:
         current_vars = set(self.context.keys())
         added_vars = current_vars - self.prev_vars
         for var in added_vars:
+            # Skip module-level imports and built-ins
+            if var in ('duckdb', '__builtins__'):
+                continue
             obj = self.context[var]
             var_type = type(obj).__name__
             details = f"Type: {var_type}"
-            if isinstance(obj, duckdb.DuckDBPyRelation):
-                details += "\nAttributes: .query(), .columns, .fetchall()"
-            elif isinstance(obj, duckdb.DuckDBPyConnection):
-                details += "\nAttributes: .execute(), .close()"
+            
+            # Dynamically extract attributes and methods
+            attributes = []
+            for attr in dir(obj):
+                if attr.startswith('__') or attr in dir(object):
+                    continue
+                try:
+                    attr_value = getattr(obj, attr)
+                    if inspect.ismethod(attr_value) or inspect.isfunction(attr_value):
+                        attributes.append(f"{attr}()")
+                    else:
+                        attributes.append(attr)
+                except Exception:
+                    continue
+            
+            if attributes:
+                details += "\n# Attributes/Methods: " + ", ".join(sorted(attributes))
+            
             new_vars[var] = details
         self.prev_vars = current_vars
         return new_vars
@@ -62,5 +80,7 @@ if __name__ == "__main__":
     valid, result = builder.execute_snippet(snippet)
     print(f"Valid: {valid}, Result: {result}")
     vars_info = builder.get_variable_info(snippet)
+    for var, info in vars_info.items():
+        print(f"Variable {var}: {info}")
     filename = builder.store_snippet("connect", snippet, result, valid, vars_info)
     print(f"Snippet stored at: {filename}")
