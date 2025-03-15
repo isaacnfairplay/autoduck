@@ -12,10 +12,9 @@ from logging_config import setup_logging
 logger = setup_logging()
 
 def process_task(task: str, builder: SnippetBuilder, context: dict, session_id: str, system_prompt: str) -> str:
-    """Process a task by generating, executing, and storing code snippets."""
     steps = parse_multi_step_task(task)
     full_response = ""
-    previous_code = "duck_conn = duckdb.connect(':memory:')"
+    previous_code = "import duckdb\nduck_conn = duckdb.connect(':memory:')"
     valid, _ = builder.execute_snippet(previous_code)
     if not valid:
         return "Error: Could not initialize DuckDB connection"
@@ -62,7 +61,6 @@ def main():
                     current_session_id = generate_session_id()
                 subject = f"DuckDB Documentation Task Request [{current_session_id}]"
                 
-                # Request user input or generate tasks
                 sent_time = send_email(subject, "Please provide the next task or feedback.", os.getenv("USER_EMAIL"))
                 reply = get_email_input(current_session_id, os.getenv("USER_EMAIL"), sent_time)
                 

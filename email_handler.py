@@ -59,7 +59,6 @@ def get_email_input(session_id: str, from_email: str, sent_time: float, timeout:
             end_time = time.time() + timeout
             while time.time() < end_time:
                 mail.select("inbox")
-                # Search for emails with session_id in the subject
                 status, data = mail.search(None, f'SUBJECT "{session_id}"')
                 if status != "OK" or not data[0]:
                     time.sleep(15)

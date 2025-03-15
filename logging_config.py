@@ -1,13 +1,13 @@
 import os
 import logging
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
 
 def setup_logging() -> logging.Logger:
-    """Configure logging with anonymization for sensitive data."""
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)  # Set level directly
     
     SENSITIVE_DATA = {
         os.getenv("EMAIL_ADDRESS"): "[EMAIL_ADDRESS]",
@@ -17,6 +17,10 @@ def setup_logging() -> logging.Logger:
     }
     
     class AnonymizingHandler(logging.StreamHandler):
+        def __init__(self):
+            super().__init__(stream=sys.stdout)
+            self.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        
         def emit(self, record):
             record.msg = anonymize_log(str(record.msg))
             super().emit(record)
