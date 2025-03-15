@@ -1,4 +1,5 @@
 import time
+import os
 from queue import Queue
 import logging
 from email_handler import send_email, get_email_input, generate_session_id
