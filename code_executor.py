@@ -19,7 +19,6 @@ class SnippetBuilder:
         self.prev_vars = set()
 
     def execute_snippet(self, snippet: str) -> SnippetResult:
-        """Execute a Python snippet and return its success status and result/error."""
         if not snippet.strip():
             return False, "Empty snippet"
         try:
@@ -32,7 +31,6 @@ class SnippetBuilder:
             return False, str(e)
 
     def get_variable_info(self, snippet: str) -> VarInfo:
-        """Get information about variables introduced by a snippet."""
         new_vars = {}
         current_vars = set(self.context.keys())
         added_vars = current_vars - self.prev_vars
@@ -49,7 +47,6 @@ class SnippetBuilder:
         return new_vars
 
     def store_snippet(self, category: Category, snippet: str, result: Optional[str], valid: bool, vars_info: VarInfo) -> str:
-        """Store a snippet with metadata in the snippets directory."""
         seq = len([f for f in os.listdir(SNIPPET_DIR) if f.startswith(category)])
         filename = f"{SNIPPET_DIR}/{category}_{seq:03d}.py"
         with open(filename, "w") as f:
@@ -61,7 +58,7 @@ class SnippetBuilder:
 
 if __name__ == "__main__":
     builder = SnippetBuilder()
-    snippet = "conn = duckdb.connect(':memory:')\nresult = conn.execute('SELECT 42').fetchall()"
+    snippet = "import duckdb\nconn = duckdb.connect(':memory:')\nresult = conn.execute('SELECT 42').fetchall()"
     valid, result = builder.execute_snippet(snippet)
     print(f"Valid: {valid}, Result: {result}")
     vars_info = builder.get_variable_info(snippet)

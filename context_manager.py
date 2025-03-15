@@ -8,7 +8,6 @@ CONTEXT_FILE = "context.json"
 SYSTEM_PROMPT_FILE = "system_prompt.txt"
 
 def load_context() -> dict:
-    """Load the context from file or initialize with defaults."""
     if not os.path.exists(CONTEXT_FILE):
         default = {"completed_tasks": [], "current_issues": [], "goals": ["create comprehensive DuckDB documentation"], "additional_instructions": []}
         with open(CONTEXT_FILE, "w") as f:
@@ -18,12 +17,10 @@ def load_context() -> dict:
         return json.load(f)
 
 def save_context(context: dict) -> None:
-    """Save the context to file."""
     with open(CONTEXT_FILE, "w") as f:
         json.dump(context, f, indent=2)
 
 def update_system_prompt(new_instruction: str, reason: str, context: dict) -> None:
-    """Update the system prompt with a refined instruction."""
     if not os.path.exists(SYSTEM_PROMPT_FILE):
         with open(SYSTEM_PROMPT_FILE, "w") as f:
             f.write("You are an AI assistant helping with DuckDB documentation.")
@@ -37,7 +34,10 @@ def update_system_prompt(new_instruction: str, reason: str, context: dict) -> No
 if __name__ == "__main__":
     context = load_context()
     print(f"Initial Context: {context}")
-    update_system_prompt("Focus on advanced queries", "test update", context)
-    context["completed_tasks"].append("Test task")
-    save_context(context)
-    print(f"Updated Context: {load_context()}")
+    if os.getenv("ANTHROPIC_API_KEY"):
+        update_system_prompt("Focus on advanced queries", "test update", context)
+        context["completed_tasks"].append("Test task")
+        save_context(context)
+        print(f"Updated Context: {load_context()}")
+    else:
+        print("Skipping prompt update: ANTHROPIC_API_KEY missing in .env")
