@@ -35,9 +35,12 @@ if __name__ == "__main__":
     context = load_context()
     print(f"Initial Context: {context}")
     if os.getenv("ANTHROPIC_API_KEY"):
-        update_system_prompt("Focus on advanced queries", "test update", context)
-        context["completed_tasks"].append("Test task")
-        save_context(context)
-        print(f"Updated Context: {load_context()}")
+        try:
+            update_system_prompt("Focus on advanced queries", "test update", context)
+            context["completed_tasks"].append("Test task")
+            save_context(context)
+            print(f"Updated Context: {load_context()}")
+        except Exception as e:
+            print(f"Error: {e}")
     else:
         print("Skipping prompt update: ANTHROPIC_API_KEY missing in .env")

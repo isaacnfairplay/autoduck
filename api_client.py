@@ -2,18 +2,18 @@ import os
 import anthropic
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import Optional, Union, Type
+from typing import Union, Type
 import json
 import re
+from anthropic.types import TextBlock
 
 load_dotenv()
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
 
-# Define Pydantic models for structured responses
 class CodeSnippet(BaseModel):
     code: str = Field(description="The Python code snippet")
-    explanation: Optional[str] = Field(default=None, description="Explanation of the code")
+    explanation: str | None = Field(default=None, description="Explanation of the code")
 
 class Task(BaseModel):
     description: str = Field(description="Description of the task")
@@ -37,13 +37,13 @@ def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, re
         messages=[{"role": "user", "content": full_prompt}],
         max_tokens=max_tokens
     )
-    response_text = response.content[0].text.strip()  # type: ignore[attr-defined]
+    # Ensure response.content[0] is a TextBlock and extract text safely
+    if not response.content or not isinstance(response.content[0], TextBlock):
+        raise ValueError("Unexpected response content format")
+    response_text = response.content[0].text.strip()
     # Fallback: Extract JSON if Claude adds extra text
     json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-    if json_match:
-        response_json = json.loads(json_match.group(0))
-    else:
-        response_json = json.loads(response_text)
+    response_json = json.loads(json_match.group(0) if json_match else response_text)
     return response_model(**response_json)
 
 if __name__ == "__main__":
