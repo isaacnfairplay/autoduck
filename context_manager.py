@@ -28,16 +28,17 @@ def update_system_prompt(new_instruction: str, reason: str, context: Dict[str, l
     context_str = f"Completed tasks: {', '.join(context['completed_tasks'])}\nIssues: {', '.join(context['current_issues'])}\nGoals: {', '.join(context['goals'])}"
     prompt = f"Current context: {context_str}\nUser requested instruction: '{new_instruction}'\nRefine this into a concise directive."
     try:
-        refined = generate_response(prompt, system_prompt, max_tokens=50, response_model=CodeSnippet)
-        with open(SYSTEM_PROMPT_FILE, "a") as f:
-            f.write(f"\n{refined.code} [Added on {datetime.now().strftime('%Y-%m-%d %H:%M')} because {reason}.]")
+        refined = generate_response(prompt, system_prompt, max_tokens=300, response_model=CodeSnippet, retries=3)
+        if isinstance(refined, CodeSnippet):
+            with open(SYSTEM_PROMPT_FILE, "a") as f:
+                f.write(f"\n{refined.code} [Added on {datetime.now().strftime('%Y-%m-%d %H:%M')} because {reason}.]")
+        else:
+            raise ValueError("Expected CodeSnippet, got TaskList")
     except Exception as e:
-        logger.error(f"Failed to update system prompt: {e}")
+        print(f"Failed to update system prompt: {e}")
         raise
 
 if __name__ == "__main__":
-    from logging_config import setup_logging
-    logger = setup_logging()
     context = load_context()
     print(f"Initial Context: {context}")
     if os.getenv("ANTHROPIC_API_KEY"):

@@ -1,16 +1,13 @@
 import time
 from queue import Queue
-import logging
 from email_handler import send_email, get_email_input, generate_session_id
 from context_manager import load_context, save_context, update_system_prompt
 from code_executor import SnippetBuilder
 from api_client import generate_response, CodeSnippet
 from git_handler import auto_commit_changes
 from planning import generate_tasks, parse_multi_step_task
-from logging_config import setup_logging
 from typing import Literal
 
-logger = setup_logging()
 VALID_CATEGORIES: tuple[Literal["connect"], Literal["query"], Literal["other"]] = ("connect", "query", "other")
 
 def process_task(task: str, builder: SnippetBuilder, context: dict, session_id: str, system_prompt: str) -> str:
@@ -23,12 +20,14 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, session_id: 
     builder.store_snippet("connect", previous_code, None, True, builder.get_variable_info(previous_code))
 
     for i, step in enumerate(steps, 1):
-        logger.info(f"Processing step {i}: {step}")
+        print(f"Processing step {i}: {step}")
         max_attempts = 3
         for attempt in range(max_attempts):
             prompt = f"Previous code:\n{previous_code}\nTask: {step}\nGenerate a Python code snippet using DuckDB."
             try:
                 response = generate_response(prompt, system_prompt, max_tokens=500, response_model=CodeSnippet)
+                if not isinstance(response, CodeSnippet):
+                    raise ValueError("Expected CodeSnippet, got TaskList")
                 code_snippet = response.code
             except Exception as e:
                 full_response += f"\nStep {i}: {step}\nError generating code: {e}\n"
@@ -78,7 +77,7 @@ def main():
                 reply = get_email_input(current_session_id, os.getenv("USER_EMAIL", ""), sent_time)
                 
                 if not reply:
-                    logger.info("No reply received, generating tasks automatically.")
+                    print("No reply received, generating tasks automatically.")
                     tasks = generate_tasks(context, system_prompt)
                     for task in tasks:
                         task_queue.put(task)
@@ -100,7 +99,7 @@ def main():
                 task_queue.task_done()
 
         except Exception as e:
-            logger.error(f"Error: {e}")
+            print(f"Error: {e}")
             send_email(f"Error [{current_session_id}]", str(e), os.getenv("USER_EMAIL", ""))
             time.sleep(3600)
 

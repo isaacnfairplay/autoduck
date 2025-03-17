@@ -13,9 +13,12 @@ def generate_tasks(context: dict, system_prompt: str, num_tasks: int = 3) -> Lis
     )
     try:
         response = generate_response(prompt, system_prompt, max_tokens=500, response_model=TaskList)
-        return [task.description for task in response.tasks]
+        if isinstance(response, TaskList):
+            return [task.description for task in response.tasks]
+        else:
+            raise ValueError("Expected TaskList, got CodeSnippet")
     except Exception as e:
-        logger.error(f"Failed to generate tasks: {e}")
+        print(f"Failed to generate tasks: {e}")
         return ["Error generating tasks"]
 
 def parse_multi_step_task(task: str) -> List[str]:
@@ -37,8 +40,6 @@ def parse_multi_step_task(task: str) -> List[str]:
     return steps if steps else [task.strip()]
 
 if __name__ == "__main__":
-    from logging_config import setup_logging
-    logger = setup_logging()
     context = load_context()
     system_prompt = open("system_prompt.txt").read()
     if os.getenv("ANTHROPIC_API_KEY"):
