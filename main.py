@@ -28,7 +28,7 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, session_id: 
         for attempt in range(max_attempts):
             prompt = f"Previous code:\n{previous_code}\nTask: {step}\nGenerate a Python code snippet using DuckDB."
             try:
-                response = generate_response(prompt, system_prompt, response_model=CodeSnippet)
+                response = generate_response(prompt, system_prompt, max_tokens=500, response_model=CodeSnippet)
                 code_snippet = response.code
             except Exception as e:
                 full_response += f"\nStep {i}: {step}\nError generating code: {e}\n"
@@ -39,7 +39,7 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, session_id: 
             valid, result = builder.execute_snippet(code_snippet)
             if valid:
                 vars_info = builder.get_variable_info(code_snippet)
-                category = "query" if "SELECT" in code_snippet.upper() else "other"
+                category: Literal["connect", "query", "other"] = "query" if "SELECT" in code_snippet.upper() else "other"
                 builder.store_snippet(category, code_snippet, result, True, vars_info)
                 auto_commit_changes(f"Added snippet for step {i} of task: {step}")
                 full_response += f"\nStep {i}: {step}\n```python\n{code_snippet}\n```\nResult: {result}"

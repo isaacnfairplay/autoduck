@@ -84,17 +84,17 @@ def get_email_input(session_id: str, from_email: str, sent_time: float, timeout:
                     if email_time < sent_time or from_email not in sender or session_id not in msg.get("Subject", ""):
                         continue
                     save_processed_email(message_id)
-                    payload = msg.get_payload(decode=True)
+                    payload = msg.get_payload()
                     if isinstance(payload, list):
                         for part in payload:
                             if isinstance(part, email.message.Message) and part.get_content_type() == "text/plain":
                                 decoded = part.get_payload(decode=True)
                                 if isinstance(decoded, bytes):
                                     return decoded.decode().strip()
-                    elif isinstance(payload, bytes):
-                        return payload.decode().strip()
                     elif isinstance(payload, str):
                         return payload.strip()
+                    elif isinstance(payload, bytes):
+                        return payload.decode().strip()
                 time.sleep(15)
             return ""
     except Exception as e:
