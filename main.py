@@ -57,13 +57,16 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, system_promp
     return full_response
 
 def main():
+
     builder = SnippetBuilder()
     task_queue = Queue()
     system_prompt = open("system_prompt.txt").read()
-
+    print("Initialized")
     while True:
         try:
+            
             context = load_context()
+            print(f"loaded context {len(context)}")
             if task_queue.empty():
                 # Construct Mega prompt with all context
                 completed_tasks_str = "\n".join(f"- {task}" for task in context.get("completed_tasks", []))

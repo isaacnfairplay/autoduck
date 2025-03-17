@@ -13,7 +13,7 @@ load_dotenv()
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 
-token_tracker = TokenTracker(c_in=3e-6, c_out=15e-6, daily_limit=1.0)
+token_tracker = TokenTracker(c_in=3e-6, c_out=15e-6, daily_limit=3.0)
 
 class CodeSnippet(BaseModel):
     code: str = Field(description="The Python code snippet")
