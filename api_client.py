@@ -26,13 +26,11 @@ def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, re
     """Generate a structured JSON response with retries for malformed output."""
     full_prompt = (
         f"{system_prompt}\n\n{prompt}\n"
-        "Respond **ONLY** with a complete, valid JSON object matching the requested structure. "
-        "For code snippets, include 'code' (string) and 'explanation' (string or null). "
-        "For task lists, include 'tasks' (array of objects with 'description' fields). "
-        "Ensure all strings are properly terminated and the JSON has no syntax errors. "
-        "Do not include extra text, Markdown, or code blocks outside the JSON. "
-        "Example for code: {'code': 'print(42)', 'explanation': 'Prints 42'} "
-        "Example for tasks: {'tasks': [{'description': 'Task 1'}, {'description': 'Task 2'}]}"
+        "Respond **ONLY** with a concise, valid JSON object matching the requested structure. "
+        "For code snippets, use 'code' (string) and 'explanation' (string or null), keeping it brief. "
+        "For task lists, use 'tasks' (array of objects with 'description' fields). "
+        "Ensure all strings are terminated and JSON is complete. No extra text or Markdown outside JSON. "
+        "Examples: {'code': 'print(42)', 'explanation': 'Prints 42'} or {'tasks': [{'description': 'Task 1'}]}"
     )
     for attempt in range(retries):
         try:
@@ -44,7 +42,6 @@ def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, re
             if not response.content or not isinstance(response.content[0], TextBlock):
                 raise ValueError("Unexpected response content format")
             response_text = response.content[0].text.strip()
-            # Fallback: Extract JSON if extra text is present
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
                 response_json_str = json_match.group(0)
@@ -55,7 +52,7 @@ def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, re
         except (json.JSONDecodeError, ValueError) as e:
             print(f"Attempt {attempt + 1} failed: {e}. Response text: {response_text}")
             if attempt < retries - 1:
-                time.sleep(2)  # Wait before retrying
+                time.sleep(2)
             else:
                 raise ValueError("Failed to get valid JSON after retries") from e  # type: ignore[return]
 

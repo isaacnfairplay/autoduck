@@ -12,7 +12,7 @@ def generate_tasks(context: dict, system_prompt: str, num_tasks: int = 3) -> Lis
         "Do not include any text, Markdown, or code blocks outside the JSON structure."
     )
     try:
-        response = generate_response(prompt, system_prompt, max_tokens=500, response_model=TaskList)
+        response = generate_response(prompt, system_prompt, max_tokens=500, response_model=TaskList, retries=3)
         if isinstance(response, TaskList):
             return [task.description for task in response.tasks]
         else:

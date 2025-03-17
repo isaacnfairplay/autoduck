@@ -25,7 +25,7 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, session_id: 
         for attempt in range(max_attempts):
             prompt = f"Previous code:\n{previous_code}\nTask: {step}\nGenerate a Python code snippet using DuckDB."
             try:
-                response = generate_response(prompt, system_prompt, max_tokens=500, response_model=CodeSnippet)
+                response = generate_response(prompt, system_prompt, max_tokens=500, response_model=CodeSnippet, retries=3)
                 if not isinstance(response, CodeSnippet):
                     raise ValueError("Expected CodeSnippet, got TaskList")
                 code_snippet = response.code

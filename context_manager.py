@@ -28,7 +28,7 @@ def update_system_prompt(new_instruction: str, reason: str, context: Dict[str, l
     context_str = f"Completed tasks: {', '.join(context['completed_tasks'])}\nIssues: {', '.join(context['current_issues'])}\nGoals: {', '.join(context['goals'])}"
     prompt = f"Current context: {context_str}\nUser requested instruction: '{new_instruction}'\nRefine this into a concise directive."
     try:
-        refined = generate_response(prompt, system_prompt, max_tokens=300, response_model=CodeSnippet, retries=3)
+        refined = generate_response(prompt, system_prompt, max_tokens=500, response_model=CodeSnippet, retries=3)
         if isinstance(refined, CodeSnippet):
             with open(SYSTEM_PROMPT_FILE, "a") as f:
                 f.write(f"\n{refined.code} [Added on {datetime.now().strftime('%Y-%m-%d %H:%M')} because {reason}.]")
