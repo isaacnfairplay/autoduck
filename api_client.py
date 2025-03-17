@@ -13,8 +13,6 @@ load_dotenv()
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 
-token_tracker = TokenTracker(c_in=3e-6, c_out=15e-6, daily_limit=3.0)
-
 class CodeSnippet(BaseModel):
     code: str = Field(description="The Python code snippet")
     explanation: str | None = Field(default=None, description="Explanation of the code")
@@ -28,7 +26,7 @@ class TaskList(BaseModel):
 class StringResponse(BaseModel):
     response: str = Field(description="A string response, e.g., for Mega prompt feedback")
 
-def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, response_model: Type[Union[CodeSnippet, TaskList, StringResponse]] = CodeSnippet, retries: int = 3) -> Union[CodeSnippet, TaskList, StringResponse]:
+def generate_response(prompt: str, system_prompt: str, token_tracker: TokenTracker, max_tokens: int = 500, response_model: Type[Union[CodeSnippet, TaskList, StringResponse]] = CodeSnippet, retries: int = 3) -> Union[CodeSnippet, TaskList, StringResponse]:
     """Generate a structured JSON response with retries for malformed output."""
     if response_model == CodeSnippet:
         prompt_suffix = "Respond **ONLY** with a concise, valid JSON object containing 'code' (string) and 'explanation' (string or null). Ensure strings are terminated and JSON is complete. No extra text or Markdown outside JSON."
@@ -36,13 +34,13 @@ def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, re
         prompt_suffix = "Respond **ONLY** with a valid JSON object containing 'tasks' (array of objects with 'description' fields). Ensure JSON is complete. No extra text or Markdown outside JSON."
     else:  # StringResponse
         prompt_suffix = "Respond **ONLY** with a valid JSON object containing 'response' (string). If updating the system prompt, start with 'UPDATE PROMPT:' followed by the new instruction. Ensure JSON is complete."
-    
+
     full_prompt = f"{system_prompt}\n\n{prompt}\n{prompt_suffix}"
     estimated_input_tokens = len(full_prompt.split())  # Rough estimate: ~1 token per word
     
     if not token_tracker.can_make_call(estimated_input_tokens, max_tokens):
         wait_time = token_tracker.wait_until_reset()
-        print(f"Token limit reached. Waiting {wait_time:.2f} seconds.")
+        print(f"Hourly token limit reached (Input: {token_tracker.hourly_input_limit}, Output: {token_tracker.hourly_output_limit}). Waiting {wait_time:.2f} seconds.")
         time.sleep(wait_time)
 
     for attempt in range(retries):
@@ -55,7 +53,8 @@ def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, re
             input_tokens = response.usage.input_tokens
             output_tokens = response.usage.output_tokens
             token_tracker.add_usage(input_tokens, output_tokens)
-            
+            print(f"API call used {input_tokens} input tokens, {output_tokens} output tokens. Current hourly cost: ${token_tracker.get_current_cost():.4f}")
+
             if not response.content or not isinstance(response.content[0], TextBlock):
                 raise ValueError("Unexpected response content format")
             response_text = response.content[0].text.strip()
@@ -78,9 +77,10 @@ def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, re
 
 if __name__ == "__main__":
     system_prompt = "You are an AI assistant for DuckDB documentation."
+    token_tracker = TokenTracker()  # Local instance for testing
     if os.getenv("ANTHROPIC_API_KEY"):
         try:
-            response = generate_response("Generate a DuckDB query example with Python code", system_prompt)
+            response = generate_response("Generate a DuckDB query example with Python code", system_prompt, token_tracker)
             if isinstance(response, CodeSnippet):
                 print(f"Code: {response.code}")
                 print(f"Explanation: {response.explanation}")

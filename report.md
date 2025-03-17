@@ -19,15 +19,21 @@ Success: no issues found in 1 source file
 ```
 ### Run Results
 ```text
+Reloaded token limits: Input=10000, Output=2000
+API call used 81 input tokens, 185 output tokens. Current hourly cost: $0.0030
 Code: import duckdb
 
-con = duckdb.connect('example.db')
-con.execute('CREATE TABLE users (id INT, name VARCHAR, age INT)')
-con.executemany('INSERT INTO users VALUES (?, ?, ?)', [(1, 'Alice', 30), (2, 'Bob', 25)])
+# Connect to an in-memory database
+con = duckdb.connect(':memory:')
 
-result = con.execute('SELECT name, age FROM users WHERE age > 27').fetchall()
+# Create a table and insert sample data
+con.execute('CREATE TABLE users (id INTEGER, name VARCHAR, age INTEGER)')
+con.execute('INSERT INTO users VALUES (1, "Alice", 30), (2, "Bob", 25), (3, "Charlie", 35)')
+
+# Query data and fetch results
+result = con.execute('SELECT name, age FROM users WHERE age > 25').fetchall()
 print(result)
-Explanation: Demonstrates creating a database, inserting data, and performing a simple SELECT query with a filter condition
+Explanation: This example demonstrates creating an in-memory DuckDB database, inserting data, and executing a simple SELECT query with a WHERE clause.
 ```
 
 ## main.py
