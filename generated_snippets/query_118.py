@@ -1,19 +1,25 @@
-# Generated: 2025-03-17 19:59:20.188411
+# Generated: 2025-03-17 19:59:27.621464
 # Result: [('David', 'Engineering', Decimal('75000.000'), 75000.0, Decimal('500000.000'), 1), ('Bob', 'Marketing', Decimal('60000.000'), 60000.0, Decimal('200000.000'), 2), ('Charlie', 'Sales', Decimal('55000.000'), 52500.0, Decimal('250000.000'), 3), ('Alice', 'Sales', Decimal('50000.000'), 52500.0, Decimal('250000.000'), 4)]
 # Valid: True
 import duckdb
 
+# Create an in-memory DuckDB connection
 conn = duckdb.connect(':memory:')
 
-# Create departments table
-conn.execute('CREATE TABLE departments (id INT, dept_name VARCHAR)')
+# Create a recursive common table expression (CTE) to generate a sequence
+query = '''
+WITH RECURSIVE
+  number_sequence(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1 FROM number_sequence WHERE n < 10
+  )
+SELECT n FROM number_sequence
+'''
 
-# Insert department tuple for Engineering
-conn.execute("INSERT INTO departments VALUES (3, 'Engineering')")
-
-# Query and display results
-results = conn.execute('SELECT * FROM departments').fetchall()
+# Execute the recursive query
+results = conn.execute(query).fetchall()
 for row in results:
-    print(row)
+    print(row[0])
 
 conn.close()
