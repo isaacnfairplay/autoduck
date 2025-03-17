@@ -109,7 +109,9 @@ def main():
                 print(f"Completed task: {task}")
         except Exception as e:
             print(f"Error: {e}")
-            time.sleep(3600)  # Wait 1 hour before retrying on major errors
+            import traceback
+            traceback.print_exc()
+            time.sleep(60)  # Wait 60 seconds
 
 if __name__ == "__main__":
     main()
