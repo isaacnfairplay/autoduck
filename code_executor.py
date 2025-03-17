@@ -3,7 +3,7 @@ from typing import Optional, Literal, TypeAlias
 import os
 import logging
 import inspect
-from datetime import datetime  # Fixed import
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 SNIPPET_DIR = "generated_snippets"
@@ -36,14 +36,12 @@ class SnippetBuilder:
         current_vars = set(self.context.keys())
         added_vars = current_vars - self.prev_vars
         for var in added_vars:
-            # Skip module-level imports and built-ins
             if var in ('duckdb', '__builtins__'):
                 continue
             obj = self.context[var]
             var_type = type(obj).__name__
             details = f"Type: {var_type}"
             
-            # Dynamically extract attributes and methods
             attributes = []
             for attr in dir(obj):
                 if attr.startswith('__') or attr in dir(object):

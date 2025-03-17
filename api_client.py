@@ -1,31 +1,57 @@
 import os
 import anthropic
-import re
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+from typing import Optional, Union
+import json
+import re
 
 load_dotenv()
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
 
-def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500) -> str:
+# Define Pydantic models for structured responses
+class CodeSnippet(BaseModel):
+    code: str = Field(description="The Python code snippet")
+    explanation: Optional[str] = Field(default=None, description="Explanation of the code")
+
+class Task(BaseModel):
+    description: str = Field(description="Description of the task")
+
+class TaskList(BaseModel):
+    tasks: list[Task] = Field(description="List of suggested tasks")
+
+def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, response_model: type[Union[CodeSnippet, TaskList]] = CodeSnippet) -> Union[CodeSnippet, TaskList]:
+    """Generate a structured JSON response based on the expected model."""
+    full_prompt = (
+        f"{system_prompt}\n\n{prompt}\n"
+        "Respond ONLY with a valid JSON object matching the requested structure. "
+        "For code snippets, use 'code' (string) and 'explanation' (string or null). "
+        "For task lists, use 'tasks' (array of objects with 'description' fields). "
+        "Do not include any text, Markdown, or code blocks outside the JSON structure."
+    )
     response = client.messages.create(
         model=MODEL,
-        system=system_prompt,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": full_prompt}],
         max_tokens=max_tokens
     )
-    return response.content[0].text.strip()
-
-def extract_code(response: str) -> str:
-    match = re.search(r"```python(.*?)```", response, re.DOTALL)
-    return match.group(1).strip() if match else response.strip()
+    response_text = response.content[0].text.strip()
+    # Fallback: Extract JSON if Claude adds extra text
+    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+    if json_match:
+        response_json = json.loads(json_match.group(0))
+    else:
+        response_json = json.loads(response_text)
+    return response_model(**response_json)
 
 if __name__ == "__main__":
     system_prompt = "You are an AI assistant for DuckDB documentation."
     if os.getenv("ANTHROPIC_API_KEY"):
-        response = generate_response("Generate a concise DuckDB query example with Python code", system_prompt)
-        print(f"Response: {response}")
-        code = extract_code(response)
-        print(f"Extracted Code: {code if code else 'No Python code found in response'}")
+        try:
+            response = generate_response("Generate a DuckDB query example with Python code", system_prompt)
+            print(f"Code: {response.code}")
+            print(f"Explanation: {response.explanation}")
+        except Exception as e:
+            print(f"Error: {e}")
     else:
         print("Skipping API test: ANTHROPIC_API_KEY missing in .env")

@@ -1,7 +1,6 @@
 import json
 import os
 from datetime import datetime
-from typing import Optional
 from api_client import generate_response
 
 CONTEXT_FILE = "context.json"
@@ -29,7 +28,7 @@ def update_system_prompt(new_instruction: str, reason: str, context: dict) -> No
     prompt = f"Current context: {context_str}\nUser requested instruction: '{new_instruction}'\nRefine this into a concise directive."
     refined = generate_response(prompt, system_prompt, max_tokens=50)
     with open(SYSTEM_PROMPT_FILE, "a") as f:
-        f.write(f"\n{refined} [Added on {datetime.now().strftime('%Y-%m-%d %H:%M')} because {reason}.]")
+        f.write(f"\n{refined.code} [Added on {datetime.now().strftime('%Y-%m-%d %H:%M')} because {reason}.]")
 
 if __name__ == "__main__":
     context = load_context()

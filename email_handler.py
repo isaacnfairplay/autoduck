@@ -4,6 +4,7 @@ import imaplib
 import email
 from email.mime.text import MIMEText
 from email.utils import parsedate_to_datetime
+from typing import Optional
 import json
 import time
 from datetime import datetime
