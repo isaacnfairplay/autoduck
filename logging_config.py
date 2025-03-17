@@ -7,7 +7,7 @@ load_dotenv()
 
 def setup_logging() -> logging.Logger:
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)  # Set level directly
+    logger.setLevel(logging.INFO)
     
     SENSITIVE_DATA = {
         os.getenv("EMAIL_ADDRESS"): "[EMAIL_ADDRESS]",

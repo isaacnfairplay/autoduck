@@ -1,5 +1,5 @@
 import duckdb
-from typing import Optional, Literal, TypeAlias
+from typing import Optional, Literal, TypeAlias, Dict, Any, Set
 import os
 import logging
 import inspect
@@ -10,14 +10,14 @@ SNIPPET_DIR = "generated_snippets"
 os.makedirs(SNIPPET_DIR, exist_ok=True)
 
 SnippetResult: TypeAlias = tuple[bool, Optional[str]]
-VarInfo: TypeAlias = dict[str, str]
+VarInfo: TypeAlias = Dict[str, str]
 Category: TypeAlias = Literal["connect", "query", "other"]
 
 class SnippetBuilder:
     def __init__(self) -> None:
-        self.context = {}
+        self.context: Dict[str, Any] = {}
         self.conn: Optional[duckdb.DuckDBPyConnection] = None
-        self.prev_vars = set()
+        self.prev_vars: Set[str] = set()
 
     def execute_snippet(self, snippet: str) -> SnippetResult:
         if not snippet.strip():

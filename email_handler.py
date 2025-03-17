@@ -14,18 +14,20 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-USER_EMAIL = os.getenv("USER_EMAIL")
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
-PROCESSED_EMAILS_FILE = "processed_emails.json"
+EMAIL_ADDRESS: str = os.getenv("EMAIL_ADDRESS", "")
+EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD", "")
+USER_EMAIL: str = os.getenv("USER_EMAIL", "")
+SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT: int = int(os.getenv("SMTP_PORT", 587))
+IMAP_SERVER: str = os.getenv("IMAP_SERVER", "imap.gmail.com")
+PROCESSED_EMAILS_FILE: str = "processed_emails.json"
 
 def generate_session_id() -> str:
     return f"SESSION-{datetime.now().strftime('%Y%m%d%H%M')}"
 
 def send_email(subject: str, body: str, to_email: str) -> float:
+    if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
+        raise ValueError("EMAIL_ADDRESS or EMAIL_PASSWORD missing in .env")
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = EMAIL_ADDRESS
@@ -52,6 +54,8 @@ def save_processed_email(message_id: str) -> None:
             json.dump(processed, f)
 
 def get_email_input(session_id: str, from_email: str, sent_time: float, timeout: int = 86400) -> str:
+    if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
+        raise ValueError("EMAIL_ADDRESS or EMAIL_PASSWORD missing in .env")
     processed = load_processed_emails()
     try:
         with imaplib.IMAP4_SSL(IMAP_SERVER) as mail:
@@ -66,7 +70,7 @@ def get_email_input(session_id: str, from_email: str, sent_time: float, timeout:
                 email_ids = data[0].split()
                 for email_id in reversed(email_ids):
                     status, msg_data = mail.fetch(email_id, "(RFC822)")
-                    if status != "OK":
+                    if status != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
                         continue
                     msg = email.message_from_bytes(msg_data[0][1])
                     sender = msg.get("From", "")
@@ -77,9 +81,11 @@ def get_email_input(session_id: str, from_email: str, sent_time: float, timeout:
                     if email_time < sent_time or from_email not in sender or session_id not in msg.get("Subject", ""):
                         continue
                     save_processed_email(message_id)
-                    return (msg.get_payload(decode=True).decode().strip() if not msg.is_multipart() else
-                            next((part.get_payload(decode=True).decode().strip() for part in msg.walk()
-                                  if part.get_content_type() == "text/plain"), ""))
+                    if msg.is_multipart():
+                        for part in msg.walk():
+                            if part.get_content_type() == "text/plain":
+                                return part.get_payload(decode=True).decode().strip()
+                    return msg.get_payload(decode=True).decode().strip()
                 time.sleep(15)
             return ""
     except Exception as e:

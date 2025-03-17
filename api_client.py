@@ -2,7 +2,7 @@ import os
 import anthropic
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import Optional, Union
+from typing import Optional, Union, Type
 import json
 import re
 
@@ -21,21 +21,23 @@ class Task(BaseModel):
 class TaskList(BaseModel):
     tasks: list[Task] = Field(description="List of suggested tasks")
 
-def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, response_model: type[Union[CodeSnippet, TaskList]] = CodeSnippet) -> Union[CodeSnippet, TaskList]:
+def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, response_model: Type[Union[CodeSnippet, TaskList]] = CodeSnippet) -> Union[CodeSnippet, TaskList]:
     """Generate a structured JSON response based on the expected model."""
     full_prompt = (
         f"{system_prompt}\n\n{prompt}\n"
         "Respond ONLY with a valid JSON object matching the requested structure. "
         "For code snippets, use 'code' (string) and 'explanation' (string or null). "
         "For task lists, use 'tasks' (array of objects with 'description' fields). "
-        "Do not include any text, Markdown, or code blocks outside the JSON structure."
+        "Do not include any text, Markdown, or code blocks outside the JSON structure. "
+        "Example for code: {'code': 'print(42)', 'explanation': 'Prints 42'} "
+        "Example for tasks: {'tasks': [{'description': 'Task 1'}, {'description': 'Task 2'}]}"
     )
     response = client.messages.create(
         model=MODEL,
         messages=[{"role": "user", "content": full_prompt}],
         max_tokens=max_tokens
     )
-    response_text = response.content[0].text.strip()
+    response_text = response.content[0].text.strip()  # type: ignore[attr-defined]
     # Fallback: Extract JSON if Claude adds extra text
     json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
     if json_match:
