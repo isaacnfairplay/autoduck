@@ -53,8 +53,11 @@ def generate_response(prompt: str, system_prompt: str, max_tokens: int = 500, re
             print(f"Attempt {attempt + 1} failed: {e}. Response text: {response_text}")
             if attempt < retries - 1:
                 time.sleep(2)
-            else:
-                raise ValueError("Failed to get valid JSON after retries") from e  # type: ignore[return]
+    # Fallback return if all retries fail
+    if response_model == CodeSnippet:
+        return CodeSnippet(code="print('Error: Failed to generate response')", explanation="Fallback due to repeated failures")
+    else:
+        return TaskList(tasks=[Task(description="Error: Failed to generate tasks")])
 
 if __name__ == "__main__":
     system_prompt = "You are an AI assistant for DuckDB documentation."

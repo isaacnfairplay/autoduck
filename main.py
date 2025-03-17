@@ -1,3 +1,4 @@
+import os
 import time
 from queue import Queue
 from email_handler import send_email, get_email_input, generate_session_id
