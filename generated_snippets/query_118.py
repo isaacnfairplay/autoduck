@@ -1,31 +1,39 @@
-# Generated: 2025-03-18 05:46:14.673169
-# Result: [('Electronics', 'Laptop', 1200, 1), ('Electronics', 'Smartphone', 800, 2), ('Clothing', 'Jeans', 100, 1), ('Clothing', 'Shirt', 50, 2)]
+# Generated: 2025-03-18 05:47:37.068278
+# Result: [('Electronics', Decimal('2000.00'), Decimal('4500.00'), 1), ('Electronics', Decimal('1500.00'), Decimal('2500.00'), 2), ('Electronics', Decimal('1000.00'), Decimal('1000.00'), 3), ('Clothing', Decimal('1200.00'), Decimal('2000.00'), 1), ('Clothing', Decimal('800.00'), Decimal('800.00'), 2)]
 # Valid: True
+# Variable row: Type: tuple
+# Attributes/Methods: count, index
+# Variable result: Type: list
+# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
+# Variable con: Type: DuckDBPyConnection
+# Attributes/Methods: _pybind11_conduit_v1_(), append(), array_type(), arrow(), begin(), checkpoint(), close(), commit(), create_function(), cursor(), decimal_type(), description, df(), dtype(), duplicate(), enum_type(), execute(), executemany(), extract_statements(), fetch_arrow_table(), fetch_df(), fetch_df_chunk(), fetch_record_batch(), fetchall(), fetchdf(), fetchmany(), fetchnumpy(), fetchone(), filesystem_is_registered(), from_arrow(), from_csv_auto(), from_df(), from_parquet(), from_query(), get_table_names(), install_extension(), interrupt(), list_filesystems(), list_type(), load_extension(), map_type(), pl(), query(), read_csv(), read_json(), read_parquet(), register(), register_filesystem(), remove_function(), rollback(), row_type(), rowcount, sql(), sqltype(), string_type(), struct_type(), table(), table_function(), tf(), torch(), type(), union_type(), unregister(), unregister_filesystem(), values(), view()
 import duckdb
 
-conn = duckdb.connect(':memory:')
+con = duckdb.connect(':memory:')
 
 # Create sample sales data
-conn.sql("""
-CREATE TABLE sales AS
-SELECT 'Electronics' as category, 'Laptop' as product, 1200 as sale_amount
-UNION ALL
-SELECT 'Electronics', 'Smartphone', 800
-UNION ALL
-SELECT 'Clothing', 'Shirt', 50
-UNION ALL
-SELECT 'Clothing', 'Jeans', 100
+con.sql("""
+    CREATE TABLE sales (
+        product_category TEXT,
+        sale_amount DECIMAL(10,2)
+    );
+    INSERT INTO sales VALUES
+        ('Electronics', 1000),
+        ('Electronics', 1500),
+        ('Clothing', 800),
+        ('Clothing', 1200),
+        ('Electronics', 2000)
 """)
 
-# Use window function to rank sales within categories
-result = conn.sql("""
-SELECT 
-    category, 
-    product, 
-    sale_amount,
-    RANK() OVER (PARTITION BY category ORDER BY sale_amount DESC) as sales_rank
-FROM sales
+# Calculate cumulative sales and rank within category
+result = con.sql("""
+    SELECT 
+        product_category, 
+        sale_amount,
+        SUM(sale_amount) OVER (PARTITION BY product_category ORDER BY sale_amount) as cumulative_sales,
+        RANK() OVER (PARTITION BY product_category ORDER BY sale_amount DESC) as category_rank
+    FROM sales
 """).fetchall()
 
 for row in result:
-    print(f"Category: {row[0]}, Product: {row[1]}, Amount: {row[2]}, Rank: {row[3]}")
+    print(row)
