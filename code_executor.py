@@ -22,24 +22,29 @@ class SnippetBuilder:
         self.convert_snippets_to_utf8()  # Convert existing snippets to UTF-8 at startup
 
     def convert_snippets_to_utf8(self) -> None:
-        """Check and convert all files in generated_snippets to UTF-8 if not already, preserving original content."""
+        """Convert all files in generated_snippets to UTF-8, preserving original line endings."""
         for filename in os.listdir(SNIPPET_DIR):
             filepath = os.path.join(SNIPPET_DIR, filename)
             if not os.path.isfile(filepath):
                 continue
 
-            # Detect current encoding
+            # Read the file in binary mode to preserve exact bytes
             with open(filepath, "rb") as f:
                 raw_data = f.read()
+
+            # Detect current encoding
             detected = chardet.detect(raw_data)
             current_encoding = detected["encoding"] or "utf-8"
 
             if current_encoding.lower() != "utf-8":
                 try:
-                    # Decode from detected encoding and rewrite as UTF-8
+                    # Decode to string, preserving original content
                     content = raw_data.decode(current_encoding, errors="replace")
-                    with open(filepath, "w", encoding="utf-8") as f:
-                        f.write(content)
+                    # Encode back to UTF-8 bytes without altering line endings
+                    utf8_data = content.encode("utf-8")
+                    # Write in binary mode to avoid newline normalization
+                    with open(filepath, "wb") as f:
+                        f.write(utf8_data)
                     logger.info(f"Converted {filename} from {current_encoding} to UTF-8")
                 except Exception as e:
                     logger.error(f"Failed to convert {filename} to UTF-8: {e}")
