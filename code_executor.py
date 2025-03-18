@@ -22,11 +22,19 @@ class SnippetBuilder:
         self.convert_snippets_to_utf8()  # Convert existing snippets to UTF-8 at startup
 
     def convert_snippets_to_utf8(self) -> None:
+<<<<<<< HEAD
         """Check and convert all files in generated_snippets to UTF-8 if not already, preserving original content."""
         for filename in os.listdir(SNIPPET_DIR):
             filepath = os.path.join(SNIPPET_DIR, filename)
             if os.path.isfile(filepath):
                 # Read file in binary mode to preserve exact bytes
+=======
+        """Check and convert all files in generated_snippets to UTF-8 if not already."""
+        for filename in os.listdir(SNIPPET_DIR):
+            filepath = os.path.join(SNIPPET_DIR, filename)
+            if os.path.isfile(filepath):
+                # Detect current encoding
+>>>>>>> edaaf8d199ee573242896f9a62af67eb5a2f1471
                 with open(filepath, "rb") as f:
                     raw_data = f.read()
                 detected = chardet.detect(raw_data)
@@ -34,12 +42,19 @@ class SnippetBuilder:
                 
                 if current_encoding.lower() != 'utf-8':
                     try:
+<<<<<<< HEAD
                         # Decode to string and re-encode to UTF-8 without altering content
                         content = raw_data.decode(current_encoding, errors='replace')
                         utf8_data = content.encode('utf-8')
                         # Write back in binary mode to avoid newline changes
                         with open(filepath, "wb") as f:
                             f.write(utf8_data)
+=======
+                        # Decode from detected encoding and re-encode to UTF-8
+                        content = raw_data.decode(current_encoding)
+                        with open(filepath, "w", encoding='utf-8') as f:
+                            f.write(content)
+>>>>>>> edaaf8d199ee573242896f9a62af67eb5a2f1471
                         print(f"Converted {filename} from {current_encoding} to UTF-8")
                     except Exception as e:
                         print(f"Failed to convert {filename} to UTF-8: {e}")

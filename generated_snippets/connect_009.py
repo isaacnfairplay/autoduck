@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Generated: 2025-03-17 20:14:25.718383
+=======
+# Generated: 2025-03-17 20:10:41.958813
+>>>>>>> edaaf8d199ee573242896f9a62af67eb5a2f1471
 # Result: [(42,)]
 # Valid: True
 # Variable conn: Type: DuckDBPyConnection
