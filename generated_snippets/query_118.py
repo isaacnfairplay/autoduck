@@ -1,53 +1,40 @@
-# Generated: 2025-03-17 20:07:33.981726
+# Generated: 2025-03-17 20:07:41.743113
 # Result: [(4, 'David', 'Engineering', 1, 4.0), (2, 'Bob', 'Marketing', 1, 2.0), (1, 'Alice', 'Sales', 1, 2.0), (3, 'Charlie', 'Sales', 2, 2.0)]
 # Valid: True
-# Variable query: Type: str
-# Attributes/Methods: capitalize, casefold, center, count, encode, endswith, expandtabs, find, format, format_map, index, isalnum, isalpha, isascii, isdecimal, isdigit, isidentifier, islower, isnumeric, isprintable, isspace, istitle, isupper, join, ljust, lower, lstrip, maketrans, partition, removeprefix, removesuffix, replace, rfind, rindex, rjust, rpartition, rsplit, rstrip, split, splitlines, startswith, strip, swapcase, title, translate, upper, zfill
-# Variable row: Type: tuple
-# Attributes/Methods: count, index
+# Variable results: Type: list
+# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
 import duckdb
 
-# Create an in-memory database connection
+# Create in-memory database connection
 con = duckdb.connect(':memory:')
 
 # Create sample tables
 con.execute('''
-    CREATE TABLE employees (
-        employee_id INT, 
-        name VARCHAR, 
-        department_id INT
+    CREATE TABLE sales (
+        product_id INT,
+        sale_date DATE,
+        amount DECIMAL(10,2)
     );
 
-    CREATE TABLE departments (
-        department_id INT, 
-        department_name VARCHAR
-    );
-
-    INSERT INTO employees VALUES 
-        (1, 'Alice', 10), 
-        (2, 'Bob', 20), 
-        (3, 'Charlie', 10), 
-        (4, 'David', 30);
-
-    INSERT INTO departments VALUES 
-        (10, 'Sales'), 
-        (20, 'Marketing'), 
-        (30, 'Engineering');
+    INSERT INTO sales VALUES
+        (1, '2023-01-15', 500.50),
+        (1, '2023-02-20', 750.25),
+        (2, '2023-01-10', 300.75),
+        (2, '2023-03-05', 450.00);
 ''')
 
-# Complex multi-table join with window function
+# Advanced window function with cumulative sum and ranking
 query = '''
     SELECT 
-        e.employee_id, 
-        e.name, 
-        d.department_name,
-        ROW_NUMBER() OVER (PARTITION BY d.department_name ORDER BY e.employee_id) as dept_rank,
-        AVG(e.employee_id) OVER (PARTITION BY d.department_name) as avg_dept_employee_id
-    FROM employees e
-    JOIN departments d ON e.department_id = d.department_id
-    ORDER BY d.department_name, dept_rank
+        product_id,
+        sale_date,
+        amount,
+        SUM(amount) OVER (PARTITION BY product_id ORDER BY sale_date) as cumulative_sales,
+        RANK() OVER (ORDER BY amount DESC) as sales_rank
+    FROM sales
+    ORDER BY product_id, sale_date
 '''
 
-result = con.execute(query).fetchall()
-for row in result:
+results = con.execute(query).fetchall()
+for row in results:
     print(row)
