@@ -10,12 +10,11 @@ from token_tracker import TokenTracker
 from typing import Literal
 
 VALID_CATEGORIES: tuple[Literal["connect"], Literal["query"], Literal["other"]] = ("connect", "query", "other")
-USE_LOCAL_MODEL = os.environ.get('USE_LOCAL_MODEL', True)
-anthropic_tracker = TokenTracker()
+
 # Ensure tasks directory exists
 os.makedirs("tasks", exist_ok=True)
 
-def process_task(task: str, builder: SnippetBuilder, context: dict, system_prompt: str) -> str:
+def process_task(task: str, builder: SnippetBuilder, context: dict, system_prompt: str, local_tracker: TokenTracker) -> str:
     steps = parse_multi_step_task(task)
     full_response = f"# Task: {task}\n\n"
     previous_code = "import duckdb\nduck_conn = duckdb.connect(':memory:')"
@@ -30,8 +29,8 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, system_promp
         for attempt in range(max_attempts):
             prompt = f"Previous code:\n{previous_code}\nTask: {step}\nGenerate a Python code snippet using DuckDB."
             try:
-                # Use anthropic_tracker here; local_tracker is handled in api_client
-                response, model_used = generate_response(prompt, system_prompt, token_tracker=anthropic_tracker, max_tokens=500, response_model=CodeSnippet, retries=3)
+                # Use local_tracker for task processing
+                response, model_used = generate_response(prompt, system_prompt, local_tracker, max_tokens=500, response_model=CodeSnippet, retries=3)
                 if not isinstance(response, CodeSnippet):
                     raise ValueError("Expected CodeSnippet, got TaskList")
                 code_snippet = response.code
@@ -74,7 +73,6 @@ def main():
         c_out=0.0,  # No cost for local
         history_file="local_token_usage.json"
     )
-    # Set ridiculous limits for local model (loaded from .env or defaults to high values)
     local_tracker.hourly_input_limit = int(os.getenv("LOCAL_HOURLY_INPUT_TOKEN_LIMIT", 1_000_000_000))  # 1 billion
     local_tracker.hourly_output_limit = int(os.getenv("LOCAL_HOURLY_OUTPUT_TOKEN_LIMIT", 1_000_000_000))  # 1 billion
     anthropic_tracker = TokenTracker(
@@ -100,12 +98,11 @@ def main():
                     f"Completed Tasks:\n{completed_tasks_str or 'None'}\n\n"
                     f"Current Issues:\n{current_issues_str or 'None'}\n\n"
                     f"Goals:\n{goals_str or 'None'}\n\n"
-                    "Please provide the next task or feedback. If you want to update the system prompt, "
-                    "start your response with 'UPDATE PROMPT:' followed by the new instruction."
+                    "Please provide a small, focused task exploring a unique DuckDB feature or combination. Avoid large, comprehensive examples."
                 )
                 print("Generating next task via Mega prompt...")
-                
-                response, model_used = generate_response(mega_prompt, system_prompt, anthropic_tracker, max_tokens=1000, response_model=StringResponse, retries=3, use_remote=True)
+                # Use anthropic_tracker for Mega prompt to ensure fast response
+                response, model_used = generate_response(mega_prompt, system_prompt, anthropic_tracker, max_tokens=500, response_model=StringResponse, retries=3, use_remote=True)
                 reply = response.response.strip()
                 print(f"Received reply from {model_used}: {reply}")
                 if reply.startswith("UPDATE PROMPT:"):
@@ -118,7 +115,7 @@ def main():
             while not task_queue.empty():
                 task = task_queue.get()
                 print(f"Processing task: {task}")
-                full_response = process_task(task, builder, context, system_prompt)
+                full_response = process_task(task, builder, context, system_prompt, local_tracker)
                 # Generate markdown file for the task
                 task_seq = len(os.listdir("tasks"))
                 filename = f"tasks/task_{task_seq:03d}.md"
@@ -131,7 +128,7 @@ def main():
                 print(f"Completed task: {task}")
         except Exception as e:
             print(f"Error: {e}")
-            time.sleep(3600)  # Wait 1 hour before retrying on major errors
+            time.sleep(3600)  # Wait 1 hour before retrying
 
 if __name__ == "__main__":
     main()
