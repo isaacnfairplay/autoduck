@@ -1,31 +1,36 @@
-# Generated: 2025-03-18 05:43:05.449029
-# Result: [('Electronics', 1500, 1500), ('Electronics', 2300, 3800), ('Clothing', 1200, 1200), ('Clothing', 1800, 3000)]
+# Generated: 2025-03-18 05:44:14.413525
+# Result: [(1, datetime.date(2023, 1, 15), 10, Decimal('50.00'), Decimal('500.00')), (1, datetime.date(2023, 2, 20), 15, Decimal('52.50'), Decimal('1287.50')), (2, datetime.date(2023, 1, 10), 5, Decimal('75.00'), Decimal('375.00')), (2, datetime.date(2023, 2, 25), 8, Decimal('80.00'), Decimal('1015.00'))]
 # Valid: True
-# Variable con: Type: DuckDBPyConnection
-# Attributes/Methods: _pybind11_conduit_v1_(), append(), array_type(), arrow(), begin(), checkpoint(), close(), commit(), create_function(), cursor(), decimal_type(), description, df(), dtype(), duplicate(), enum_type(), execute(), executemany(), extract_statements(), fetch_arrow_table(), fetch_df(), fetch_df_chunk(), fetch_record_batch(), fetchall(), fetchdf(), fetchmany(), fetchnumpy(), fetchone(), filesystem_is_registered(), from_arrow(), from_csv_auto(), from_df(), from_parquet(), from_query(), get_table_names(), install_extension(), interrupt(), list_filesystems(), list_type(), load_extension(), map_type(), pl(), query(), read_csv(), read_json(), read_parquet(), register(), register_filesystem(), remove_function(), rollback(), row_type(), rowcount, sql(), sqltype(), string_type(), struct_type(), table(), table_function(), tf(), torch(), type(), union_type(), unregister(), unregister_filesystem(), values(), view()
 import duckdb
 
-con = duckdb.connect(':memory:')
+# Create an in-memory database and generate sample sales data
+conn = duckdb.connect(':memory:')
 
-# Create sales data
-con.sql("""
-CREATE TABLE sales AS
-SELECT 'Electronics' as category, 1500 as amount
-UNION ALL
-SELECT 'Electronics', 2300
-UNION ALL
-SELECT 'Clothing', 1200
-UNION ALL
-SELECT 'Clothing', 1800
+# Create and populate sales table
+conn.sql("""
+    CREATE TABLE sales (
+        product_id INTEGER,
+        sale_date DATE,
+        quantity INTEGER,
+        price DECIMAL(10,2)
+    );
+    INSERT INTO sales VALUES
+        (1, '2023-01-15', 10, 50.00),
+        (1, '2023-02-20', 15, 52.50),
+        (2, '2023-01-10', 5, 75.00),
+        (2, '2023-02-25', 8, 80.00);
 """)
 
-# Compute cumulative sales with window function
-result = con.sql("""
-SELECT 
-    category, 
-    amount,
-    SUM(amount) OVER (PARTITION BY category ORDER BY amount) as cumulative_category_sales
-FROM sales
+# Use window function to calculate running total of sales
+result = conn.sql("""
+    SELECT 
+        product_id, 
+        sale_date, 
+        quantity, 
+        price,
+        SUM(quantity * price) OVER (PARTITION BY product_id ORDER BY sale_date) as cumulative_sales
+    FROM sales
 """).fetchall()
 
-print(result)
+for row in result:
+    print(row)
