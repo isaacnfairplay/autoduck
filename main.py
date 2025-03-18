@@ -8,6 +8,7 @@ from git_handler import auto_commit_changes
 from planning import parse_multi_step_task
 from token_tracker import TokenTracker
 from typing import Literal
+import traceback
 
 VALID_CATEGORIES: tuple[Literal["connect"], Literal["query"], Literal["other"]] = ("connect", "query", "other")
 
@@ -60,8 +61,8 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, system_promp
 def main():
     builder = SnippetBuilder()
     task_queue = Queue()
-    system_prompt = open("system_prompt.txt").read()
-    token_tracker = TokenTracker()  # Single instance for the session
+    system_prompt = open("system_prompt.txt", encoding='utf-8').read()  # Use UTF-8 for reading system_prompt.txt
+    token_tracker = TokenTracker(c_in=15e-6, c_out=3e-6)  # Claude 3.7 Sonnet pricing
     print("Initialized")
 
     while True:
@@ -97,10 +98,10 @@ def main():
                 task = task_queue.get()
                 print(f"Processing task: {task}")
                 full_response = process_task(task, builder, context, system_prompt, token_tracker)
-                # Generate markdown file for the task
+                # Generate markdown file for the task with UTF-8 encoding
                 task_seq = len(os.listdir("tasks"))
                 filename = f"tasks/task_{task_seq:03d}.md"
-                with open(filename, "w") as f:
+                with open(filename, "w", encoding='utf-8') as f:
                     f.write(full_response)
                 print(f"Saved task output to {filename}")
                 context.setdefault("completed_tasks", []).append(task)
@@ -109,7 +110,6 @@ def main():
                 print(f"Completed task: {task}")
         except Exception as e:
             print(f"Error: {e}")
-            import traceback
             traceback.print_exc()
             time.sleep(60)  # Wait 60 seconds
 
