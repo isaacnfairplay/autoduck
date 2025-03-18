@@ -10,7 +10,8 @@ from token_tracker import TokenTracker
 from typing import Literal
 
 VALID_CATEGORIES: tuple[Literal["connect"], Literal["query"], Literal["other"]] = ("connect", "query", "other")
-
+USE_LOCAL_MODEL = os.environ.get('USE_LOCAL_MODEL', True)
+anthropic_tracker = TokenTracker()
 # Ensure tasks directory exists
 os.makedirs("tasks", exist_ok=True)
 
@@ -103,8 +104,8 @@ def main():
                     "start your response with 'UPDATE PROMPT:' followed by the new instruction."
                 )
                 print("Generating next task via Mega prompt...")
-                # Use local_tracker for Mega prompt to prioritize local model
-                response, model_used = generate_response(mega_prompt, system_prompt, local_tracker if USE_LOCAL_MODEL else anthropic_tracker, max_tokens=500, response_model=StringResponse, retries=3)
+                
+                response, model_used = generate_response(mega_prompt, system_prompt, anthropic_tracker, max_tokens=1000, response_model=StringResponse, retries=3, use_remote=True)
                 reply = response.response.strip()
                 print(f"Received reply from {model_used}: {reply}")
                 if reply.startswith("UPDATE PROMPT:"):

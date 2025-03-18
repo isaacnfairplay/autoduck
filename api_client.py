@@ -18,7 +18,7 @@ anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 openai_client = OpenAI(base_url="http://localhost:6965/v1", api_key="not-needed")
 
 # Configurable models from .env
-REMOTE_MODEL = os.getenv("REMOTE_MODEL", "claude-3-5-sonnet")  # Default to Claude 3.5 Sonnet
+REMOTE_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")  # Default to Claude 3.5 Sonnet
 USE_LOCAL_MODEL = os.getenv("USE_LOCAL_MODEL", "true").lower() == "true"  # Enable local model by default
 
 class CodeSnippet(BaseModel):
@@ -34,7 +34,7 @@ class TaskList(BaseModel):
 class StringResponse(BaseModel):
     response: str = Field(description="A string response, e.g., for Mega prompt feedback")
 
-def generate_response(prompt: str, system_prompt: str, token_tracker: TokenTracker, max_tokens: int = 500, response_model: Type[Union[CodeSnippet, TaskList, StringResponse]] = CodeSnippet, retries: int = 3) -> Tuple[Union[CodeSnippet, TaskList, StringResponse], str]:
+def generate_response(prompt: str, system_prompt: str, token_tracker: TokenTracker, max_tokens: int = 500, response_model: Type[Union[CodeSnippet, TaskList, StringResponse]] = CodeSnippet, retries: int = 3, use_remote:bool = False) -> Tuple[Union[CodeSnippet, TaskList, StringResponse], str]:
     """Generate a structured JSON response, trying local model first, then falling back to Anthropic. Returns (response, model_used)."""
     if response_model == CodeSnippet:
         prompt_suffix = "Respond **ONLY** with a concise, valid JSON object containing 'code' (string) and 'explanation' (string or null). Ensure strings are terminated and JSON is complete. No extra text or Markdown outside JSON."
@@ -47,7 +47,7 @@ def generate_response(prompt: str, system_prompt: str, token_tracker: TokenTrack
     estimated_input_tokens = len(full_prompt.split())  # Rough estimate: ~1 token per word
 
     # Test local model first if enabled
-    if USE_LOCAL_MODEL:
+    if USE_LOCAL_MODEL and not use_remote:
         print("Attempting local model via LMStudio...")
         test_prompt = "Generate a simple Python print statement in JSON format: {'code': 'print(...)', 'explanation': '...'}"
         local_success = False
