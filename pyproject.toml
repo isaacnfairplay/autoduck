@@ -12,6 +12,7 @@ dependencies = [
     "instructor[anthropic]>=0.6.7",
     "messages[anthropic]>=0.7.1",
     "mypy>=1.15.0",
+    "openai>=1.66.3",
     "pydantic>=2.10.6",
     "pyperclip>=1.9.0",
     "pywin32>=309",
