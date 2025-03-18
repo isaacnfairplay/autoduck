@@ -6,16 +6,14 @@ from code_executor import SnippetBuilder
 from api_client import generate_response, CodeSnippet, StringResponse
 from git_handler import auto_commit_changes
 from planning import parse_multi_step_task
-from token_tracker import TokenTracker
 from typing import Literal
-import traceback
 
 VALID_CATEGORIES: tuple[Literal["connect"], Literal["query"], Literal["other"]] = ("connect", "query", "other")
 
 # Ensure tasks directory exists
 os.makedirs("tasks", exist_ok=True)
 
-def process_task(task: str, builder: SnippetBuilder, context: dict, system_prompt: str, token_tracker: TokenTracker) -> str:
+def process_task(task: str, builder: SnippetBuilder, context: dict, system_prompt: str) -> str:
     steps = parse_multi_step_task(task)
     full_response = f"# Task: {task}\n\n"
     previous_code = "import duckdb\nduck_conn = duckdb.connect(':memory:')"
@@ -30,7 +28,7 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, system_promp
         for attempt in range(max_attempts):
             prompt = f"Previous code:\n{previous_code}\nTask: {step}\nGenerate a Python code snippet using DuckDB."
             try:
-                response = generate_response(prompt, system_prompt, token_tracker, max_tokens=500, response_model=CodeSnippet, retries=3)
+                response = generate_response(prompt, system_prompt, max_tokens=500, response_model=CodeSnippet, retries=3)
                 if not isinstance(response, CodeSnippet):
                     raise ValueError("Expected CodeSnippet, got TaskList")
                 code_snippet = response.code
@@ -61,16 +59,11 @@ def process_task(task: str, builder: SnippetBuilder, context: dict, system_promp
 def main():
     builder = SnippetBuilder()
     task_queue = Queue()
-    system_prompt = open("system_prompt.txt", encoding='utf-8').read()  # Use UTF-8 for reading system_prompt.txt
-    token_tracker = TokenTracker(c_in=15e-6, c_out=3e-6)  # Claude 3.7 Sonnet pricing
-    print("Initialized")
+    system_prompt = open("system_prompt.txt").read()
 
     while True:
         try:
-            # Reload .env limits before each iteration
-            token_tracker.reload_limits()
             context = load_context()
-            print(f"Loaded context with {len(context.get('completed_tasks', []))} completed tasks")
             if task_queue.empty():
                 # Construct Mega prompt with all context
                 completed_tasks_str = "\n".join(f"- {task}" for task in context.get("completed_tasks", []))
@@ -83,35 +76,27 @@ def main():
                     "Please provide the next task or feedback. If you want to update the system prompt, "
                     "start your response with 'UPDATE PROMPT:' followed by the new instruction."
                 )
-                print("Generating next task via Mega prompt...")
-                response = generate_response(mega_prompt, system_prompt, token_tracker, max_tokens=500, response_model=StringResponse, retries=3)
+                response = generate_response(mega_prompt, system_prompt, max_tokens=500, response_model=StringResponse, retries=3)
                 reply = response.response.strip()
-                print(f"Received reply: {reply}")
                 if reply.startswith("UPDATE PROMPT:"):
                     instruction = reply[len("UPDATE PROMPT:"):].strip()
                     update_system_prompt(instruction, "user requested via Mega prompt", context)
-                    print(f"Updated system prompt with: {instruction}")
                 else:
                     task_queue.put(reply)
-                    print(f"Added task to queue: {reply}")
             while not task_queue.empty():
                 task = task_queue.get()
-                print(f"Processing task: {task}")
-                full_response = process_task(task, builder, context, system_prompt, token_tracker)
-                # Generate markdown file for the task with UTF-8 encoding
+                full_response = process_task(task, builder, context, system_prompt)
+                # Generate markdown file for the task
                 task_seq = len(os.listdir("tasks"))
                 filename = f"tasks/task_{task_seq:03d}.md"
-                with open(filename, "w", encoding='utf-8') as f:
+                with open(filename, "w") as f:
                     f.write(full_response)
-                print(f"Saved task output to {filename}")
                 context.setdefault("completed_tasks", []).append(task)
                 save_context(context)
                 task_queue.task_done()
-                print(f"Completed task: {task}")
         except Exception as e:
             print(f"Error: {e}")
-            traceback.print_exc()
-            time.sleep(60)  # Wait 60 seconds
+            time.sleep(3600)  # Wait 1 hour before retrying
 
 if __name__ == "__main__":
     main()
