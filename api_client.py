@@ -88,6 +88,7 @@ def generate_response(prompt: str, system_prompt: str, token_tracker: TokenTrack
                     )
                     input_tokens = response.usage.prompt_tokens
                     output_tokens = response.usage.completion_tokens
+                    token_tracker.add_usage(input_tokens, output_tokens)  # Log usage for stats
                     print(f"Local API call used {input_tokens} input tokens, {output_tokens} output tokens (no cost tracked)")
                     response_text = response.choices[0].message.content.strip()
                     json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
