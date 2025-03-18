@@ -1,43 +1,53 @@
-# Generated: 2025-03-17 20:00:04.216554
-# Result: [('David', 'Engineering', Decimal('75000.000'), 75000.0, Decimal('500000.000'), 1), ('Bob', 'Marketing', Decimal('60000.000'), 60000.0, Decimal('200000.000'), 2), ('Charlie', 'Sales', Decimal('55000.000'), 52500.0, Decimal('250000.000'), 3), ('Alice', 'Sales', Decimal('50000.000'), 52500.0, Decimal('250000.000'), 4)]
+# Generated: 2025-03-17 20:07:33.981726
+# Result: [(4, 'David', 'Engineering', 1, 4.0), (2, 'Bob', 'Marketing', 1, 2.0), (1, 'Alice', 'Sales', 1, 2.0), (3, 'Charlie', 'Sales', 2, 2.0)]
 # Valid: True
+# Variable query: Type: str
+# Attributes/Methods: capitalize, casefold, center, count, encode, endswith, expandtabs, find, format, format_map, index, isalnum, isalpha, isascii, isdecimal, isdigit, isidentifier, islower, isnumeric, isprintable, isspace, istitle, isupper, join, ljust, lower, lstrip, maketrans, partition, removeprefix, removesuffix, replace, rfind, rindex, rjust, rpartition, rsplit, rstrip, split, splitlines, startswith, strip, swapcase, title, translate, upper, zfill
+# Variable row: Type: tuple
+# Attributes/Methods: count, index
 import duckdb
 
 # Create an in-memory database connection
-conn = duckdb.connect(':memory:')
+con = duckdb.connect(':memory:')
 
-# Create tables for complex join
-conn.execute('CREATE TABLE orders (order_id INT, customer_id INT, total_amount DECIMAL)')
-conn.execute('CREATE TABLE customers (customer_id INT, name VARCHAR, city VARCHAR)')
+# Create sample tables
+con.execute('''
+    CREATE TABLE employees (
+        employee_id INT, 
+        name VARCHAR, 
+        department_id INT
+    );
 
-# Insert sample data
-conn.execute('''
-INSERT INTO orders VALUES
-    (1, 101, 500.00),
-    (2, 102, 750.50),
-    (3, 101, 250.75)
+    CREATE TABLE departments (
+        department_id INT, 
+        department_name VARCHAR
+    );
+
+    INSERT INTO employees VALUES 
+        (1, 'Alice', 10), 
+        (2, 'Bob', 20), 
+        (3, 'Charlie', 10), 
+        (4, 'David', 30);
+
+    INSERT INTO departments VALUES 
+        (10, 'Sales'), 
+        (20, 'Marketing'), 
+        (30, 'Engineering');
 ''')
 
-conn.execute('''
-INSERT INTO customers VALUES
-    (101, 'Alice', 'New York'),
-    (102, 'Bob', 'San Francisco')
-''')
-
-# Complex query with join, aggregation, and window function
+# Complex multi-table join with window function
 query = '''
-SELECT 
-    c.name, 
-    c.city, 
-    SUM(o.total_amount) as total_purchases,
-    RANK() OVER (ORDER BY SUM(o.total_amount) DESC) as customer_rank
-FROM customers c
-JOIN orders o ON c.customer_id = o.customer_id
-GROUP BY c.customer_id, c.name, c.city
+    SELECT 
+        e.employee_id, 
+        e.name, 
+        d.department_name,
+        ROW_NUMBER() OVER (PARTITION BY d.department_name ORDER BY e.employee_id) as dept_rank,
+        AVG(e.employee_id) OVER (PARTITION BY d.department_name) as avg_dept_employee_id
+    FROM employees e
+    JOIN departments d ON e.department_id = d.department_id
+    ORDER BY d.department_name, dept_rank
 '''
 
-results = conn.execute(query).fetchall()
-for row in results:
+result = con.execute(query).fetchall()
+for row in result:
     print(row)
-
-conn.close()

@@ -56,6 +56,8 @@ class TokenTracker:
         current_input, current_output = self.get_current_usage()
         input_ok = current_input + estimated_input_tokens < self.hourly_input_limit
         output_ok = current_output + estimated_output_tokens < self.hourly_output_limit
+        if not( input_ok and output_ok):
+            print(f"Current Input {current_input} and Current Output {current_output}")
         return input_ok and output_ok
 
     def wait_until_reset(self) -> float:
