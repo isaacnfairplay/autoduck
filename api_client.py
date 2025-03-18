@@ -11,6 +11,13 @@ from anthropic.types import TextBlock
 from token_tracker import TokenTracker
 import logging
 
+# Configure logging with filename and line number
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+    filename='app.log',
+    filemode='a'  # Append mode
+)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -18,7 +25,7 @@ load_dotenv()
 # Anthropic client for remote model
 anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 # OpenAI client for LMStudio local model
-openai_client = OpenAI(base_url="http://localhost:6965/v1", api_key="not-needed")
+
 
 # Configurable models from .env
 REMOTE_MODEL = os.getenv("REMOTE_MODEL", "claude-3-5-sonnet")
@@ -57,6 +64,7 @@ def _try_local_model(full_prompt: str, system_prompt: str, max_tokens: int, resp
     """Attempt to generate a response using the local model with retries, no token limits."""
     for attempt in range(retries):
         try:
+            openai_client = OpenAI(base_url="http://localhost:6965/v1", api_key="not-needed")
             response = openai_client.chat.completions.create(
                 model="local-model",
                 messages=[
