@@ -11,7 +11,6 @@ from anthropic.types import TextBlock
 from token_tracker import TokenTracker
 import logging
 
-# Get logger instance (assuming configuration is done elsewhere)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -22,8 +21,9 @@ anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 openai_client = OpenAI(base_url="http://localhost:6965/v1", api_key="not-needed")
 
 # Configurable models from .env
-REMOTE_MODEL = os.getenv("REMOTE_MODEL", "claude-3-5-sonnet")  # Default to Claude 3.5 Sonnet
-USE_LOCAL_MODEL = os.getenv("USE_LOCAL_MODEL", "true").lower() == "true"  # Enable local model by default
+REMOTE_MODEL = os.getenv("REMOTE_MODEL", "claude-3-5-sonnet")
+USE_LOCAL_MODEL = os.getenv("USE_LOCAL_MODEL", "true").lower() == "true"
+LOCAL_MAX_TOKENS = int(os.getenv("LOCAL_MAX_TOKENS", 800))
 
 class CodeSnippet(BaseModel):
     code: str = Field(description="The Python code snippet")
@@ -40,11 +40,11 @@ class StringResponse(BaseModel):
 
 def _get_prompt_suffix(response_model: Type[Union[CodeSnippet, TaskList, StringResponse]]) -> str:
     """Return the appropriate prompt suffix based on response model."""
-    if response_model == CodeSnippet:
-        return "Respond **ONLY** with a concise, valid JSON object containing 'code' (string) and 'explanation' (string or null). Ensure strings are terminated and JSON is complete. No extra text or Markdown outside JSON."
-    elif response_model == TaskList:
-        return "Respond **ONLY** with a valid JSON object containing 'tasks' (array of objects with 'description' fields). Ensure JSON is complete. No extra text or Markdown outside JSON."
-    return "Respond **ONLY** with a valid JSON object containing 'response' (string). If updating the system prompt, start with 'UPDATE PROMPT:' followed by the new instruction. Ensure JSON is complete."
+    return {
+        CodeSnippet: "Respond **ONLY** with a concise, valid JSON object containing 'code' (string) and 'explanation' (string or null). Ensure strings are terminated and JSON is complete. No extra text or Markdown outside JSON.",
+        TaskList: "Respond **ONLY** with a valid JSON object containing 'tasks' (array of objects with 'description' fields). Ensure JSON is complete. No extra text or Markdown outside JSON.",
+        StringResponse: "Respond **ONLY** with a valid JSON object containing 'response' (string). If updating the system prompt, start with 'UPDATE PROMPT:' followed by the new instruction. Ensure JSON is complete."
+    }[response_model]
 
 def _parse_response(response_text: str, response_model: Type[Union[CodeSnippet, TaskList, StringResponse]]) -> Union[CodeSnippet, TaskList, StringResponse]:
     """Parse and validate the response text into the specified model."""
@@ -63,7 +63,7 @@ def _try_local_model(full_prompt: str, system_prompt: str, max_tokens: int, resp
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": full_prompt}
                 ],
-                max_tokens=max_tokens
+                max_tokens=LOCAL_MAX_TOKENS
             )
             input_tokens = response.usage.prompt_tokens
             output_tokens = response.usage.completion_tokens
@@ -110,20 +110,19 @@ def generate_response(prompt: str, system_prompt: str, token_tracker: TokenTrack
     """Generate a structured JSON response with simplified control flow, no token limits for local model."""
     prompt_suffix = _get_prompt_suffix(response_model)
     full_prompt = f"{system_prompt}\n\n{prompt}\n{prompt_suffix}"
-    estimated_input_tokens = len(full_prompt.split())  # Rough estimate
+    estimated_input_tokens = len(full_prompt.split())
 
-    # Try local model first if enabled and not forced remote, no token limit check
+    # Try local model first if enabled and not forced remote
     if USE_LOCAL_MODEL and not use_remote:
         logger.info("Attempting local model via LMStudio...")
         result, model_used, success = _try_local_model(full_prompt, system_prompt, max_tokens, response_model, retries)
         if success:
-            # Log usage for stats only, no limit enforcement
-            token_tracker.add_usage(estimated_input_tokens, max_tokens)
+            token_tracker.add_usage(estimated_input_tokens, LOCAL_MAX_TOKENS)
             logger.info(f"Successfully generated response using {model_used}")
             return result, model_used
         logger.warning("Local model failed after retries, switching to Anthropic")
 
-    # Fallback to Anthropic with token limits
+    # Fallback to Anthropic
     logger.info("Using Anthropic remote model...")
     result, model_used, success = _try_anthropic_model(full_prompt, token_tracker, max_tokens, response_model, retries, estimated_input_tokens)
     if success:
@@ -151,8 +150,8 @@ if __name__ == "__main__":
                 logger.info(f"Code: {response.code}")
                 logger.info(f"Explanation: {response.explanation}")
             else:
-                logger.warning("Unexpected response type")
+                logger.warning("Unexpected response type received")
         except Exception as e:
-            logger.error(f"Error: {e}")
+            logger.error(f"Error during execution: {e}")
     else:
         logger.warning("Skipping API test: ANTHROPIC_API_KEY missing in .env")
