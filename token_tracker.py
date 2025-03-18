@@ -5,9 +5,9 @@ import os
 from dotenv import load_dotenv
 
 class TokenTracker:
-    def __init__(self, c_in: float = 3e-6, c_out: float = 15e-6, history_file: str = "token_usage.json"):
-        self.c_in = c_in  # Cost per input token ($0.000003 for Claude 3.5 Sonnet)
-        self.c_out = c_out  # Cost per output token ($0.000015 for Claude 3.5 Sonnet)
+    def __init__(self, c_in: float = 15e-6, c_out: float = 3e-6, history_file: str = "token_usage.json"):
+        self.c_in = c_in  # Cost per input token ($15/MT for Claude 3.7 Sonnet)
+        self.c_out = c_out  # Cost per output token ($3/MT for Claude 3.7 Sonnet)
         self.history_file = history_file
         self.usage_history: List[Tuple[float, int, int]] = []  # (timestamp, input_tokens, output_tokens)
         self.reload_limits()  # Initial load of limits
