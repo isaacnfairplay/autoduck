@@ -4,6 +4,7 @@ import os
 import logging
 import inspect
 from datetime import datetime
+import chardet  # For detecting file encoding
 
 logger = logging.getLogger(__name__)
 SNIPPET_DIR = "generated_snippets"
@@ -18,6 +19,32 @@ class SnippetBuilder:
         self.context: Dict[str, Any] = {}
         self.conn: Optional[duckdb.DuckDBPyConnection] = None
         self.prev_vars: Set[str] = set()
+        self.convert_snippets_to_utf8()  # Convert existing snippets to UTF-8 at startup
+
+    def convert_snippets_to_utf8(self) -> None:
+        """Check and convert all files in generated_snippets to UTF-8 if not already, preserving original content."""
+        for filename in os.listdir(SNIPPET_DIR):
+            filepath = os.path.join(SNIPPET_DIR, filename)
+            if os.path.isfile(filepath):
+                # Read file in binary mode to preserve exact bytes
+                with open(filepath, "rb") as f:
+                    raw_data = f.read()
+                detected = chardet.detect(raw_data)
+                current_encoding = detected['encoding'] or 'utf-8'
+                
+                if current_encoding.lower() != 'utf-8':
+                    try:
+                        # Decode to string and re-encode to UTF-8 without altering content
+                        content = raw_data.decode(current_encoding, errors='replace')
+                        utf8_data = content.encode('utf-8')
+                        # Write back in binary mode to avoid newline changes
+                        with open(filepath, "wb") as f:
+                            f.write(utf8_data)
+                        print(f"Converted {filename} from {current_encoding} to UTF-8")
+                    except Exception as e:
+                        print(f"Failed to convert {filename} to UTF-8: {e}")
+                else:
+                    print(f"{filename} is already UTF-8")
 
     def execute_snippet(self, snippet: str) -> SnippetResult:
         if not snippet.strip():
@@ -65,7 +92,7 @@ class SnippetBuilder:
     def store_snippet(self, category: Category, snippet: str, result: Optional[str], valid: bool, vars_info: VarInfo) -> str:
         seq = len([f for f in os.listdir(SNIPPET_DIR) if f.startswith(category)])
         filename = f"{SNIPPET_DIR}/{category}_{seq:03d}.py"
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding='utf-8') as f:
             f.write(f"# Generated: {datetime.now()}\n# Result: {result}\n# Valid: {valid}\n")
             for var, info in vars_info.items():
                 f.write(f"# Variable {var}: {info}\n")
