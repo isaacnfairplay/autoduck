@@ -1,42 +1,37 @@
-# Generated: 2025-03-18 11:49:12.815398
-# Result: [('Engineering', 75000.0, 1), ('Sales', 57500.0, 2)]
+# Generated: 2025-03-18 13:19:31.711856
+# Result: [(3, datetime.date(2023, 3, 10), 2, 2), (1, datetime.date(2023, 1, 15), 5, 5), (1, datetime.date(2023, 2, 25), 7, 12), (2, datetime.date(2023, 2, 20), 3, 3)]
 # Valid: True
-# Variable result: Type: list
-# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
-# Variable conn: Type: DuckDBPyConnection
-# Attributes/Methods: _pybind11_conduit_v1_(), append(), array_type(), arrow(), begin(), checkpoint(), close(), commit(), create_function(), cursor(), decimal_type(), description, df(), dtype(), duplicate(), enum_type(), execute(), executemany(), extract_statements(), fetch_arrow_table(), fetch_df(), fetch_df_chunk(), fetch_record_batch(), fetchall(), fetchdf(), fetchmany(), fetchnumpy(), fetchone(), filesystem_is_registered(), from_arrow(), from_csv_auto(), from_df(), from_parquet(), from_query(), get_table_names(), install_extension(), interrupt(), list_filesystems(), list_type(), load_extension(), map_type(), pl(), query(), read_csv(), read_json(), read_parquet(), register(), register_filesystem(), remove_function(), rollback(), row_type(), rowcount, sql(), sqltype(), string_type(), struct_type(), table(), table_function(), tf(), torch(), type(), union_type(), unregister(), unregister_filesystem(), values(), view()
-# Variable con: Type: DuckDBPyConnection
-# Attributes/Methods: _pybind11_conduit_v1_(), append(), array_type(), arrow(), begin(), checkpoint(), close(), commit(), create_function(), cursor(), decimal_type(), description, df(), dtype(), duplicate(), enum_type(), execute(), executemany(), extract_statements(), fetch_arrow_table(), fetch_df(), fetch_df_chunk(), fetch_record_batch(), fetchall(), fetchdf(), fetchmany(), fetchnumpy(), fetchone(), filesystem_is_registered(), from_arrow(), from_csv_auto(), from_df(), from_parquet(), from_query(), get_table_names(), install_extension(), interrupt(), list_filesystems(), list_type(), load_extension(), map_type(), pl(), query(), read_csv(), read_json(), read_parquet(), register(), register_filesystem(), remove_function(), rollback(), row_type(), rowcount, sql(), sqltype(), string_type(), struct_type(), table(), table_function(), tf(), torch(), type(), union_type(), unregister(), unregister_filesystem(), values(), view()
 import duckdb
 
-# Create an in-memory connection
+# Connect to in-memory database
 con = duckdb.connect(':memory:')
 
-# Create a sample table with employee data
+# Create sales table
 con.execute('''
-    CREATE TABLE employees (
-        id INTEGER PRIMARY KEY,
-        name VARCHAR,
-        department VARCHAR,
-        salary DECIMAL(10,2)
+    CREATE TABLE sales (
+        product_id INTEGER,
+        sale_date DATE,
+        quantity INTEGER,
+        price DECIMAL(10,2)
     );
 ''')
 
-# Insert sample data
-con.executemany('INSERT INTO employees VALUES (?, ?, ?, ?)', [
-    (1, 'Alice', 'Sales', 55000.00),
-    (2, 'Bob', 'Engineering', 75000.00),
-    (3, 'Charlie', 'Sales', 60000.00)
+# Insert sample sales data
+con.executemany('INSERT INTO sales VALUES (?, ?, ?, ?)', [
+    (1, '2023-01-15', 5, 50.00),
+    (2, '2023-02-20', 3, 75.50),
+    (1, '2023-02-25', 7, 50.00),
+    (3, '2023-03-10', 2, 100.25)
 ])
 
-# Perform a query with aggregation and filtering
+# Analyze sales with window function
 result = con.execute('''
-    SELECT department, 
-           AVG(salary) as avg_salary, 
-           COUNT(*) as employee_count
-    FROM employees
-    WHERE salary > 50000
-    GROUP BY department
+    SELECT 
+        product_id, 
+        sale_date, 
+        quantity, 
+        SUM(quantity) OVER (PARTITION BY product_id ORDER BY sale_date) as cumulative_quantity
+    FROM sales
 ''').fetchall()
 
 print(result)
