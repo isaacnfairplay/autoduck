@@ -1,32 +1,24 @@
-# Generated: 2025-03-19 08:25:19.657986
-# Result: [('Clothing', 'Jacket', Decimal('250.75'), 1), ('Electronics', 'Laptop', Decimal('1200.50'), 1), ('Electronics', 'Smartphone', Decimal('800.25'), 2)]
+# Generated: 2025-03-19 08:26:10.384594
+# Result: [('Laptop', 'Electronics', 10, Decimal('1200.50')), ('Smartphone', 'Electronics', 15, Decimal('800.25')), ('Shoes', 'Clothing', 20, Decimal('150.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
 conn.execute('''
-CREATE TABLE product_sales (
-    category VARCHAR,
+CREATE TABLE sales (
     product VARCHAR,
-    sale_amount DECIMAL(10,2)
+    category VARCHAR,
+    quantity INTEGER,
+    price DECIMAL(10,2)
 );
 
-INSERT INTO product_sales VALUES
-    ('Electronics', 'Laptop', 1200.50),
-    ('Electronics', 'Smartphone', 800.25),
-    ('Clothing', 'Jacket', 250.75);
+INSERT INTO sales VALUES
+    ('Laptop', 'Electronics', 10, 1200.50),
+    ('Smartphone', 'Electronics', 15, 800.25),
+    ('Shoes', 'Clothing', 20, 150.00);
 ''')
 
-result = conn.execute('''
-SELECT 
-    category, 
-    product, 
-    sale_amount,
-    RANK() OVER (PARTITION BY category ORDER BY sale_amount DESC) as product_rank
-FROM product_sales
-ORDER BY category, product_rank
-''').fetchall()
-
+result = conn.execute('SELECT * FROM sales').fetchall()
 for row in result:
     print(row)
