@@ -1,28 +1,37 @@
-# Generated: 2025-03-19 13:36:29.370918
-# Result: [('Laptop', Decimal('49999.50'), 999.99), ('Phone', Decimal('49950.00'), 499.5), ('Tablet', Decimal('22481.25'), 299.75)]
+# Generated: 2025-03-19 13:37:22.262728
+# Result: [('Marketing', None, None, None, None), ('Sales', 'Alice', Decimal('5000.00'), Decimal('5000.00'), Decimal('5000.00')), ('Engineering', 'Bob', Decimal('6500.50'), Decimal('6500.50'), Decimal('6500.50')), ('Engineering', 'Charlie', Decimal('7200.75'), Decimal('6500.50'), Decimal('7200.75'))]
 # Valid: True
 import duckdb
 
-# Create in-memory database and table
+# Demonstrate lateral join with subquery generation
 conn = duckdb.connect(':memory:')
-conn.execute('CREATE TABLE sales (product VARCHAR, quantity INT, price DECIMAL(10,2))')
 
-# Insert sample sales data
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    ('Laptop', 50, 999.99),
-    ('Phone', 100, 499.50),
-    ('Tablet', 75, 299.75)
+# Create tables with related data
+conn.execute('CREATE TABLE departments (dept_id INT, dept_name VARCHAR)')
+conn.execute('CREATE TABLE employees (emp_id INT, name VARCHAR, dept_id INT, salary DECIMAL(10,2))')
+
+conn.executemany('INSERT INTO departments VALUES (?, ?)', [
+    (1, 'Sales'), (2, 'Engineering'), (3, 'Marketing')
 ])
 
-# Calculate total revenue per product using SQL aggregation
+conn.executemany('INSERT INTO employees VALUES (?, ?, ?, ?)', [
+    (101, 'Alice', 1, 5000.00),
+    (102, 'Bob', 2, 6500.50),
+    (103, 'Charlie', 2, 7200.75)
+])
+
+# Use lateral join to generate employee salary ranges per department
 result = conn.execute('''
     SELECT 
-        product, 
-        SUM(quantity * price) as total_revenue,
-        AVG(price) as avg_price
-    FROM sales
-    GROUP BY product
-    ORDER BY total_revenue DESC
+        d.dept_name, 
+        e.name, 
+        e.salary,
+        FIRST_VALUE(e.salary) OVER (PARTITION BY d.dept_id ORDER BY e.salary) as min_salary,
+        LAST_VALUE(e.salary) OVER (PARTITION BY d.dept_id ORDER BY e.salary) as max_salary
+    FROM departments d
+    LEFT JOIN LATERAL (
+        SELECT * FROM employees WHERE dept_id = d.dept_id
+    ) e ON TRUE
 ''').fetchall()
 
 print(result)
