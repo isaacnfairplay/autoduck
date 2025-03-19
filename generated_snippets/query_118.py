@@ -1,29 +1,28 @@
-# Generated: 2025-03-19 12:45:06.414174
-# Result: [('John', Decimal('50.00'), '2023-06-01', Decimal('50.00')), ('Jane', Decimal('75.50'), '2023-06-02', Decimal('125.50')), ('Bob', Decimal('125.25'), '2023-06-03', Decimal('250.75')), ('Alice', Decimal('200.00'), '2023-06-04', Decimal('450.75'))]
+# Generated: 2025-03-19 12:45:57.520601
+# Result: [('Alice', 'Sales', 50000, 1), ('Charlie', 'Sales', 55000, 2), ('David', 'Engineering', 75000, 1), ('Bob', 'Marketing', 60000, 1)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample customer orders
+# Create sample employee data
 conn.execute('''
-CREATE TABLE orders AS
+CREATE TABLE employees AS
 SELECT * FROM (VALUES
-    (1, 'John', 50.00, '2023-06-01'),
-    (2, 'Jane', 75.50, '2023-06-02'),
-    (3, 'Bob', 125.25, '2023-06-03'),
-    (4, 'Alice', 200.00, '2023-06-04')
-) AS t(order_id, customer, total, order_date);
+    (1, 'Alice', 'Sales', 50000),
+    (2, 'Bob', 'Marketing', 60000),
+    (3, 'Charlie', 'Sales', 55000),
+    (4, 'David', 'Engineering', 75000)
+) AS t(id, name, department, salary);
 ''')
 
-# Calculate running total with window function
-result = conn.execute('''
-SELECT 
-    customer, 
-    total, 
-    order_date,
-    SUM(total) OVER (ORDER BY order_date) as cumulative_sales
-FROM orders
+# Use window function to calculate department-wise percentile rank of salaries
+result = conn.execute('''SELECT 
+    name, 
+    department, 
+    salary,
+    NTILE(4) OVER (PARTITION BY department ORDER BY salary) as salary_quartile
+FROM employees
 ''').fetchall()
 
 for row in result:
