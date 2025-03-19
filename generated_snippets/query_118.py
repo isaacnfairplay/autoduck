@@ -1,19 +1,18 @@
-# Generated: 2025-03-19 19:53:12.719699
-# Result: [('Electronics', 'Phone', Decimal('1500.00')), ('Electronics', 'Laptop', Decimal('1200.00')), ('Clothing', 'Pants', Decimal('950.00')), ('Electronics', 'Tablet', Decimal('900.00')), ('Clothing', 'Shirt', Decimal('800.00'))]
+# Generated: 2025-03-19 19:54:05.092134
+# Result: [('Electronics', 'Phone', Decimal('1500.00'), 1), ('Electronics', 'Laptop', Decimal('1200.00'), 2), ('Clothing', 'Pants', Decimal('950.00'), 1), ('Clothing', 'Shirt', Decimal('800.00'), 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create product sales table
 conn.execute('''
-CREATE TABLE product_sales (
+CREATE TABLE sales (
     category VARCHAR,
-    product_name VARCHAR,
-    sales_amount DECIMAL(10,2)
+    product VARCHAR,
+    amount DECIMAL(10,2)
 );
 
-INSERT INTO product_sales VALUES
+INSERT INTO sales VALUES
 ('Electronics', 'Laptop', 1200),
 ('Electronics', 'Phone', 1500),
 ('Electronics', 'Tablet', 900),
@@ -21,15 +20,11 @@ INSERT INTO product_sales VALUES
 ('Clothing', 'Pants', 950);
 ''')
 
-# Calculate total sales by category and product
 result = conn.execute('''
-SELECT 
-    category, 
-    product_name,
-    SUM(sales_amount) as total_product_sales
-FROM product_sales
-GROUP BY category, product_name
-ORDER BY total_product_sales DESC
+SELECT category, product, amount,
+       ROW_NUMBER() OVER (PARTITION BY category ORDER BY amount DESC) as rank
+FROM sales
+QUALIFY rank <= 2
 ''').fetchall()
 
 print(result)
