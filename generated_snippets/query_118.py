@@ -1,33 +1,38 @@
-# Generated: 2025-03-19 09:33:55.298834
-# Result: [(1, 'login', datetime.datetime(2023, 6, 1, 10, 0), 'purchase'), (1, 'purchase', datetime.datetime(2023, 6, 1, 11, 30), None), (2, 'login', datetime.datetime(2023, 6, 2, 15, 45), 'view'), (2, 'view', datetime.datetime(2023, 6, 2, 16, 0), None)]
+# Generated: 2025-03-19 09:34:49.256872
+# Result: [('Electronics', 'North', Decimal('3500.50'), 2), ('Electronics', 'South', Decimal('1200.75'), 1), ('Clothing', 'East', Decimal('800.25'), 1), ('Books', 'West', Decimal('450.00'), 1)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sample table of user events
+# Create sales dataset with multi-category analysis
 conn.sql("""
-CREATE TABLE user_events (
-    user_id INTEGER,
-    event_type VARCHAR,
-    timestamp TIMESTAMP
+CREATE TABLE sales (
+    sale_id INTEGER,
+    product_category VARCHAR,
+    region VARCHAR,
+    sale_amount DECIMAL(10,2),
+    sale_date DATE
 );
 
-INSERT INTO user_events VALUES
-    (1, 'login', '2023-06-01 10:00:00'),
-    (1, 'purchase', '2023-06-01 11:30:00'),
-    (2, 'login', '2023-06-02 15:45:00'),
-    (2, 'view', '2023-06-02 16:00:00')
-""")
+INSERT INTO sales VALUES
+    (1, 'Electronics', 'North', 1500.50, '2023-01-15'),
+    (2, 'Electronics', 'South', 1200.75, '2023-02-20'),
+    (3, 'Clothing', 'East', 800.25, '2023-03-10'),
+    (4, 'Books', 'West', 450.00, '2023-04-05'),
+    (5, 'Electronics', 'North', 2000.00, '2023-05-12')
+""");
 
-# Demonstrate temporal event sequence analysis
+# Analyze total sales by category and region
 result = conn.sql("""
-SELECT
-    user_id,
-    event_type,
-    timestamp,
-    LEAD(event_type) OVER (PARTITION BY user_id ORDER BY timestamp) as next_event
-FROM user_events
+SELECT 
+    product_category, 
+    region, 
+    SUM(sale_amount) as total_sales,
+    COUNT(*) as sale_count
+FROM sales
+GROUP BY product_category, region
+ORDER BY total_sales DESC
 """).fetchall()
 
 print(result)
