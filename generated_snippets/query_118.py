@@ -1,30 +1,21 @@
-# Generated: 2025-03-19 11:48:41.936411
-# Result: [('Electronics', 1500, 39.473684210526315), ('Electronics', 2300, 60.526315789473685), ('Clothing', 1000, 36.36363636363637), ('Clothing', 1750, 63.63636363636363)]
+# Generated: 2025-03-19 11:52:13.714702
+# Result: [(2, 102, Decimal('275.75'), 1), (1, 101, Decimal('150.50'), 1), (3, 101, Decimal('89.99'), 2)]
 # Valid: True
 import duckdb
 
+# Create an in-memory database and sample data
 conn = duckdb.connect(':memory:')
+conn.execute('CREATE TABLE orders (order_id INT, customer_id INT, total_amount DECIMAL(10,2))')
+conn.executemany('INSERT INTO orders VALUES (?, ?, ?)', [(1, 101, 150.50), (2, 102, 275.75), (3, 101, 89.99)])
 
-# Create sales data table
-conn.execute('''
-CREATE TABLE sales AS
-SELECT 'Electronics' as category, 1500 as amount
-UNION ALL
-SELECT 'Electronics', 2300
-UNION ALL
-SELECT 'Clothing', 1000
-UNION ALL
-SELECT 'Clothing', 1750
-''')
-
-# Calculate percentage of total sales within each category
+# Demonstrate window function to rank orders per customer
 result = conn.execute('''
-SELECT 
-    category, 
-    amount,
-    amount * 100.0 / SUM(amount) OVER (PARTITION BY category) as category_percentage
-FROM sales
+    SELECT 
+        order_id, 
+        customer_id, 
+        total_amount,
+        RANK() OVER (PARTITION BY customer_id ORDER BY total_amount DESC) as order_rank
+    FROM orders
 ''').fetchall()
 
-for row in result:
-    print(f"Category: {row[0]}, Amount: {row[1]}, Percentage: {row[2]:.2f}%")
+print(result)
