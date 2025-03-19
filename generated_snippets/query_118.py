@@ -1,34 +1,31 @@
-# Generated: 2025-03-19 16:03:41.123453
+# Generated: 2025-03-19 16:04:33.706004
 # Result: [(2, 'Electronics', Decimal('1500.000'), 1), (4, 'Clothing', Decimal('1200.000'), 1)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Demonstrate nested subquery with window function ranking
+# Create a table with geographic data and perform spatial query
 conn.execute("""
-CREATE TABLE sales (
-    product_id INT,
-    category VARCHAR,
-    sales_amount DECIMAL
+CREATE TABLE cities (
+    name VARCHAR,
+    latitude DOUBLE,
+    longitude DOUBLE
 );
 
-INSERT INTO sales VALUES
-    (1, 'Electronics', 1000),
-    (2, 'Electronics', 1500),
-    (3, 'Clothing', 800),
-    (4, 'Clothing', 1200);
+INSERT INTO cities VALUES
+    ('New York', 40.7128, -74.0060),
+    ('Los Angeles', 34.0522, -118.2437),
+    ('Chicago', 41.8781, -87.6298);
 
-WITH ranked_sales AS (
-    SELECT
-        product_id,
-        category,
-        sales_amount,
-        RANK() OVER (PARTITION BY category ORDER BY sales_amount DESC) as sales_rank
-    FROM sales
-)
-SELECT * FROM ranked_sales WHERE sales_rank = 1;
-""")
-
-result = conn.fetchall()
-print(result)  # Top-selling products per category
+-- Calculate distances between cities using Haversine formula
+SELECT 
+    name, 
+    ROUND(6371 * 2 * ASIN(
+        SQRT(POWER(SIN((latitude - 40.7128) * PI() / 360), 2) + 
+             COS(latitude * PI() / 180) * COS(40.7128 * PI() / 180) * 
+             POWER(SIN((longitude - (-74.0060)) * PI() / 360), 2)
+        )
+    ), 2) AS distance_km
+FROM cities
+""").fetchall()
