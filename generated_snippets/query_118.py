@@ -1,12 +1,22 @@
-# Generated: 2025-03-19 14:22:36.391524
-# Result: [([2.0, 3.0, 4.0, 5.0, 6.0],)]
+# Generated: 2025-03-19 14:23:27.405582
+# Result: [(1, 1), (2, 1), (3, 2), (4, 3), (5, 5), (6, 8), (7, 13), (8, 21), (9, 34), (10, 55)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
+# Create a recursive common table expression (CTE) to generate a Fibonacci sequence
 result = conn.execute('''
-    SELECT array_transform([4, 9, 16, 25, 36], x -> SQRT(x)) AS sqrt_array
+    WITH RECURSIVE fibonacci(n, a, b) AS (
+        SELECT 1, 0, 1
+        UNION ALL
+        SELECT n + 1, b, a + b
+        FROM fibonacci
+        WHERE n < 10
+    )
+    SELECT n, b AS fibonacci_number
+    FROM fibonacci
 ''').fetchall()
 
-print(result[0][0])  # Output: [2.0, 3.0, 4.0, 5.0, 6.0]
+for row in result:
+    print(row)
