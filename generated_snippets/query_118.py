@@ -1,28 +1,28 @@
-# Generated: 2025-03-19 14:54:24.555295
-# Result: [('Electronics', Decimal('6000.000'), 1, 1), ('Electronics', Decimal('5500.000'), 2, 2), ('Electronics', Decimal('5000.000'), 3, 3), ('Clothing', Decimal('4000.000'), 1, 1), ('Clothing', Decimal('3500.000'), 2, 2), ('Clothing', Decimal('3000.000'), 3, 3)]
+# Generated: 2025-03-19 14:56:09.026064
+# Result: [('Alice', 28, 'Middle-aged'), ('Diana', 22, 'Young')]
 # Valid: True
 import duckdb
 
-# Demonstrate window functions with rank and dense_rank
 conn = duckdb.connect(':memory:')
 
-# Create sample sales data
-conn.execute('''
-    CREATE TABLE sales (department STRING, sales_amount DECIMAL);
-    INSERT INTO sales VALUES
-        ('Electronics', 5000), ('Clothing', 3000), 
-        ('Electronics', 6000), ('Clothing', 4000),
-        ('Electronics', 5500), ('Clothing', 3500);
-''')
+# Create and query a people table with complex age-based filtering
+conn.execute('''CREATE TABLE people (name VARCHAR, age INTEGER, city VARCHAR)''')
+conn.execute('''INSERT INTO people VALUES 
+    ('Alice', 28, 'New York'), 
+    ('Bob', 35, 'San Francisco'), 
+    ('Charlie', 42, 'Chicago'), 
+    ('Diana', 22, 'Boston')''')
 
-# Rank sales within each department
 result = conn.execute('''
-    SELECT 
-        department, 
-        sales_amount, 
-        RANK() OVER (PARTITION BY department ORDER BY sales_amount DESC) as sales_rank,
-        DENSE_RANK() OVER (PARTITION BY department ORDER BY sales_amount DESC) as dense_sales_rank
-    FROM sales
+    SELECT name, age, 
+           CASE 
+               WHEN age < 25 THEN 'Young' 
+               WHEN age BETWEEN 25 AND 40 THEN 'Middle-aged' 
+               ELSE 'Senior' 
+           END as age_group
+    FROM people
+    WHERE city IN ('New York', 'Boston') AND age > 20
+    ORDER BY age DESC
 ''').fetchall()
 
 print(result)
