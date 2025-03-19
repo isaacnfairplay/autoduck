@@ -1,11 +1,12 @@
-# Generated: 2025-03-19 12:05:41.034711
-# Result: [('Alice', 30), ('Charlie', 35)]
+# Generated: 2025-03-19 12:06:31.121151
+# Result: [('Sales',), ('Engineering',)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
-conn.execute('CREATE TABLE users (id INT, name TEXT, age INT)')
-conn.executemany('INSERT INTO users VALUES (?, ?, ?)', [(1, 'Alice', 30), (2, 'Bob', 25), (3, 'Charlie', 35)])
 
-result = conn.execute('SELECT name, age FROM users WHERE age > 28').fetchall()
+conn.execute('CREATE TABLE departments(dept_id INTEGER, dept_name VARCHAR)')
+conn.executemany('INSERT INTO departments VALUES (?, ?)', [(1, 'Sales'), (2, 'Engineering')])
+
+result = conn.execute('SELECT dept_name FROM departments WHERE dept_id > 0').fetchall()
 print(result)
