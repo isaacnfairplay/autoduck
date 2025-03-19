@@ -1,19 +1,20 @@
-# Generated: 2025-03-19 16:56:23.845911
-# Result: [(3, ['reading', 'music']), (1, ['reading', 'coding'])]
+# Generated: 2025-03-19 16:57:17.929328
+# Result: [([1, 4, 9, 16, 25],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table with array column
-conn.sql("CREATE TABLE users (id INT, interests STRING[])")
+# Create a table with numeric lists
+conn.sql('''
+CREATE TABLE numbers_list AS
+SELECT [1, 2, 3, 4, 5] AS nums
+''')
 
-# Insert data with array literals
-conn.sql("INSERT INTO users VALUES "
-         "(1, ['reading', 'coding']), "
-         "(2, ['travel', 'photography']), "
-         "(3, ['reading', 'music'])")
+# Transform list elements by squaring each value
+result = conn.sql('''
+SELECT array_transform(nums, x -> x * x) AS squared_nums
+FROM numbers_list
+''').fetchall()
 
-# Use array_contains to filter rows
-result = conn.sql("SELECT * FROM users WHERE 'reading' = ANY(interests)").fetchall()
-print(result)
+print(result)  # Output: [1, 4, 9, 16, 25]
