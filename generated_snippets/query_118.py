@@ -1,33 +1,35 @@
-# Generated: 2025-03-19 16:58:10.144319
-# Result: [('Chicago', 68.1, datetime.datetime(2023, 6, 15, 10, 0), 68.1), ('Chicago', 70.3, datetime.datetime(2023, 6, 15, 11, 0), 69.19999999999999), ('New York', 72.5, datetime.datetime(2023, 6, 15, 10, 0), 72.5), ('New York', 75.2, datetime.datetime(2023, 6, 15, 11, 0), 73.85)]
+# Generated: 2025-03-19 16:59:03.777684
+# Result: [('Clothing', 'Mens', Decimal('50.00'), 0), ('Clothing', 'Womens', Decimal('100.00'), 0), ('Clothing', None, Decimal('150.00'), 1), ('Electronics', 'Computers', Decimal('2700.00'), 0), ('Electronics', 'Phones', Decimal('800.00'), 0), ('Electronics', None, Decimal('3500.00'), 1)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create temperature readings table with geospatial and time series dimensions
-conn.sql('''
-CREATE TABLE weather_readings (
-    city VARCHAR,
-    temperature DOUBLE,
-    timestamp TIMESTAMP
+# Create a sample product sales table with hierarchical categories
+conn.sql('''CREATE TABLE product_sales (
+    category VARCHAR,
+    subcategory VARCHAR,
+    product VARCHAR,
+    sales DECIMAL(10,2)
 );
 
-INSERT INTO weather_readings VALUES
-    ('New York', 72.5, '2023-06-15 10:00:00'),
-    ('New York', 75.2, '2023-06-15 11:00:00'),
-    ('Chicago', 68.1, '2023-06-15 10:00:00'),
-    ('Chicago', 70.3, '2023-06-15 11:00:00')
-''')
+INSERT INTO product_sales VALUES
+    ('Electronics', 'Computers', 'Laptop', 1500.00),
+    ('Electronics', 'Computers', 'Desktop', 1200.00),
+    ('Electronics', 'Phones', 'Smartphone', 800.00),
+    ('Clothing', 'Mens', 'Shirt', 50.00),
+    ('Clothing', 'Womens', 'Dress', 100.00)
+''');
 
-# Use window function to calculate rolling temperature average
-result = conn.sql('''
-SELECT 
-    city, 
-    temperature, 
-    timestamp,
-    AVG(temperature) OVER (PARTITION BY city ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS rolling_avg
-FROM weather_readings
+# Compute total sales with nested grouping
+result = conn.sql('''SELECT
+    category,
+    subcategory,
+    SUM(sales) as total_sales,
+    GROUPING(category, subcategory) as grouping_id
+FROM product_sales
+GROUP BY GROUPING SETS ((category), (category, subcategory))
+ORDER BY category, subcategory
 ''').fetchall()
 
 print(result)
