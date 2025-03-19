@@ -1,36 +1,33 @@
-# Generated: 2025-03-19 09:33:03.260841
-# Result: [('GOOGL', datetime.date(2023, 1, 1), Decimal('100.25'), 100.25, Decimal('0.00')), ('GOOGL', datetime.date(2023, 1, 2), Decimal('102.50'), 101.375, Decimal('2.25')), ('GOOGL', datetime.date(2023, 1, 3), Decimal('101.75'), 102.125, Decimal('1.50')), ('AAPL', datetime.date(2023, 1, 1), Decimal('150.50'), 150.5, Decimal('0.00')), ('AAPL', datetime.date(2023, 1, 2), Decimal('152.25'), 151.375, Decimal('1.75')), ('AAPL', datetime.date(2023, 1, 3), Decimal('149.75'), 151.0, Decimal('-0.75'))]
+# Generated: 2025-03-19 09:33:55.298834
+# Result: [(1, 'login', datetime.datetime(2023, 6, 1, 10, 0), 'purchase'), (1, 'purchase', datetime.datetime(2023, 6, 1, 11, 30), None), (2, 'login', datetime.datetime(2023, 6, 2, 15, 45), 'view'), (2, 'view', datetime.datetime(2023, 6, 2, 16, 0), None)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create time series data with complex window function
+# Create a sample table of user events
 conn.sql("""
-CREATE TABLE stock_prices (
-    date DATE,
-    stock VARCHAR,
-    price DECIMAL(10,2)
+CREATE TABLE user_events (
+    user_id INTEGER,
+    event_type VARCHAR,
+    timestamp TIMESTAMP
 );
 
-INSERT INTO stock_prices VALUES
-    ('2023-01-01', 'AAPL', 150.50),
-    ('2023-01-02', 'AAPL', 152.25),
-    ('2023-01-03', 'AAPL', 149.75),
-    ('2023-01-01', 'GOOGL', 100.25),
-    ('2023-01-02', 'GOOGL', 102.50),
-    ('2023-01-03', 'GOOGL', 101.75)
+INSERT INTO user_events VALUES
+    (1, 'login', '2023-06-01 10:00:00'),
+    (1, 'purchase', '2023-06-01 11:30:00'),
+    (2, 'login', '2023-06-02 15:45:00'),
+    (2, 'view', '2023-06-02 16:00:00')
 """)
 
-# Calculate rolling 2-day average and total price change
+# Demonstrate temporal event sequence analysis
 result = conn.sql("""
-SELECT 
-    stock, 
-    date, 
-    price,
-    AVG(price) OVER (PARTITION BY stock ORDER BY date ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg,
-    price - FIRST_VALUE(price) OVER (PARTITION BY stock ORDER BY date) as price_change
-FROM stock_prices
+SELECT
+    user_id,
+    event_type,
+    timestamp,
+    LEAD(event_type) OVER (PARTITION BY user_id ORDER BY timestamp) as next_event
+FROM user_events
 """).fetchall()
 
 print(result)
