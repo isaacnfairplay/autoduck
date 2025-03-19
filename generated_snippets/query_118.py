@@ -1,20 +1,33 @@
-# Generated: 2025-03-19 14:31:13.785536
-# Result: (datetime.datetime(2023, 1, 15, 10, 0), datetime.datetime(2023, 1, 15, 12, 0))
+# Generated: 2025-03-19 14:32:06.044258
+# Result: [(3, 'Electronics', Decimal('750.75'), 1), (1, 'Electronics', Decimal('500.50'), 2), (4, 'Books', Decimal('100.00'), 1), (2, 'Clothing', Decimal('200.25'), 1)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create temporal data and demonstrate interval calculations
-conn.execute("CREATE TABLE events (event_time TIMESTAMP, duration INTERVAL)")
-conn.execute("INSERT INTO events VALUES ('2023-01-15 10:00:00', INTERVAL 2 HOURS)")
+# Create sample sales data with product details
+conn.execute('''
+    CREATE TABLE sales (
+        product_id INTEGER,
+        category VARCHAR,
+        amount DECIMAL(10,2)
+    );
+    INSERT INTO sales VALUES
+        (1, 'Electronics', 500.50),
+        (2, 'Clothing', 200.25),
+        (3, 'Electronics', 750.75),
+        (4, 'Books', 100.00)
+''')
 
-# Calculate end time using interval addition
-result = conn.execute("""
+# Use window functions to rank products within categories
+result = conn.execute('''
     SELECT 
-        event_time, 
-        event_time + duration AS event_end_time
-    FROM events
-""").fetchone()
+        product_id, 
+        category, 
+        amount,
+        RANK() OVER (PARTITION BY category ORDER BY amount DESC) as category_rank
+    FROM sales
+''').fetchall()
 
-print(f"Start: {result[0]}, End: {result[1]}")
+for row in result:
+    print(f"Product {row[0]} in {row[1]}: ${row[2]} (Rank: {row[3]})")
