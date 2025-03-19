@@ -1,30 +1,35 @@
-# Generated: 2025-03-19 09:04:34.003032
-# Result: [('South', 'Laptop', Decimal('1500.75'), 1), ('West', 'Laptop', Decimal('2150.80'), 2), ('West', 'Phone', Decimal('2150.80'), 3), ('East', 'Phone', Decimal('800.25'), 4), ('Midwest', 'Tablet', Decimal('600.00'), 5)]
+# Generated: 2025-03-19 09:05:27.956355
+# Result: [(102, 4.55, 60, 1), (101, 4.15, 40, 2), (102, 4.55, 60, 3), (101, 4.15, 40, 4)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales table with geographic dimension
-conn.execute('CREATE TABLE regional_sales (region TEXT, product TEXT, sale_amount DECIMAL(10,2), sale_date DATE)')
+# Create a complex data tracking table for product reviews
+conn.execute('''CREATE TABLE product_reviews (
+    product_id INT,
+    reviewer_id INT,
+    rating DECIMAL(3,2),
+    review_date DATE,
+    helpful_votes INT
+)''')
 
-# Insert diverse sales data with multiple dimensions
-conn.executemany('INSERT INTO regional_sales VALUES (?, ?, ?, ?)', [
-    ('West', 'Laptop', 1200.50, '2023-05-15'),
-    ('East', 'Phone', 800.25, '2023-05-16'),
-    ('Midwest', 'Tablet', 600.00, '2023-05-17'),
-    ('South', 'Laptop', 1500.75, '2023-05-18'),
-    ('West', 'Phone', 950.30, '2023-05-19')
+# Insert sample review data
+conn.executemany('INSERT INTO product_reviews VALUES (?, ?, ?, ?, ?)', [
+    (101, 1, 4.5, '2023-07-01', 25),
+    (101, 2, 3.8, '2023-07-02', 15),
+    (102, 3, 4.9, '2023-07-03', 40),
+    (102, 4, 4.2, '2023-07-04', 20)
 ])
 
-# Analyze sales with advanced window and aggregation functions
+# Analyze reviews using window functions and aggregations
 result = conn.execute('''SELECT
-    region,
-    product,
-    SUM(sale_amount) OVER (PARTITION BY region) as regional_total,
-    RANK() OVER (ORDER BY sale_amount DESC) as sale_rank
-FROM regional_sales
+    product_id,
+    ROUND(AVG(rating) OVER (PARTITION BY product_id), 2) as avg_product_rating,
+    SUM(helpful_votes) OVER (PARTITION BY product_id) as total_helpful_votes,
+    RANK() OVER (ORDER BY rating DESC) as rating_rank
+FROM product_reviews
 ''').fetchall()
 
 for row in result:
-    print(f"Region: {row[0]}, Product: {row[1]}, Regional Total: ${row[2]}, Sale Rank: {row[3]}")
+    print(f"Product ID: {row[0]}, Avg Rating: {row[1]}, Total Helpful Votes: {row[2]}, Rating Rank: {row[3]}")
