@@ -1,33 +1,23 @@
-# Generated: 2025-03-19 18:19:38.445980
-# Result: [2, 4, 6, 8]
+# Generated: 2025-03-19 18:20:29.474386
+# Result: (10, 34)
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a temporary table and apply a window function
-conn.execute("""
-CREATE TABLE sales (
-    product TEXT,
-    region TEXT,
-    amount DECIMAL
-);
+# Recursive common table expression to generate a Fibonacci sequence
+query = '''
+WITH RECURSIVE fibonacci(n, a, b) AS (
+    SELECT 1, 0, 1
+    UNION ALL
+    SELECT n + 1, b, a + b
+    FROM fibonacci
+    WHERE n < 10
+)
+SELECT n, a AS fibonacci_number
+FROM fibonacci;
+'''
 
-INSERT INTO sales VALUES
-    ('Widget', 'North', 1000),
-    ('Gadget', 'North', 1500),
-    ('Widget', 'South', 800),
-    ('Gadget', 'South', 1200);
-
-SELECT 
-    product, 
-    region, 
-    amount,
-    RANK() OVER (PARTITION BY region ORDER BY amount DESC) as sales_rank
-FROM sales;
-""")
-
-# Fetch and print results
-results = conn.fetchall()
-for row in results:
-    print(row)
+results = conn.execute(query).fetchall()
+for result in results:
+    print(f'Position {result[0]}: {result[1]}')
