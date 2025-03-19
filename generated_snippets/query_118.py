@@ -1,11 +1,11 @@
-# Generated: 2025-03-19 12:25:45.563430
-# Result: [('Electronics', 'Laptop', Decimal('1200.00'))]
+# Generated: 2025-03-19 12:26:36.573081
+# Result: [('Phone', Decimal('800.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create an electronics products table
+# Create electronics table with task data
 conn.execute('''
 CREATE TABLE electronics (
     category VARCHAR,
@@ -14,16 +14,16 @@ CREATE TABLE electronics (
 );
 
 INSERT INTO electronics VALUES
-    ('Electronics', 'Laptop', 1200.00),
-    ('Electronics', 'Smartphone', 800.50),
-    ('Electronics', 'Tablet', 500.25);
+    ('Electronics', 'Phone', 800),
+    ('Electronics', 'Laptop', 1200),
+    ('Electronics', 'Tablet', 500);
 ''')
 
-# Find products above specific price threshold
+# Query products matching specific criteria
 result = conn.execute('''
-SELECT category, product, price
+SELECT product, price
 FROM electronics
-WHERE price > 1000
+WHERE category = 'Electronics' AND price = 800
 ''').fetchall()
 
 for row in result:
