@@ -1,37 +1,37 @@
-# Generated: 2025-03-19 16:26:52.357585
-# Result: [(datetime.date(2023, 1, 1), 'GOOGL', Decimal('100.50'), 100.5), (datetime.date(2023, 1, 2), 'GOOGL', Decimal('102.25'), 101.375), (datetime.date(2023, 1, 1), 'AAPL', Decimal('150.25'), 150.25), (datetime.date(2023, 1, 2), 'AAPL', Decimal('152.50'), 151.375), (datetime.date(2023, 1, 3), 'AAPL', Decimal('149.75'), 151.125)]
+# Generated: 2025-03-19 16:27:44.629756
+# Result: [('Marketing', 57500.0, 2)]
 # Valid: True
 import duckdb
 
-# Create an in-memory connection
+# Create an in-memory database connection
 conn = duckdb.connect(':memory:')
 
-# Create a table with time series data
+# Create a sample table of employees
 conn.execute('''
-CREATE TABLE stock_prices (
-    date DATE,
-    symbol VARCHAR,
-    price DECIMAL(10,2),
-    volume INTEGER
+CREATE TABLE employees (
+    id INTEGER,
+    name VARCHAR,
+    department VARCHAR,
+    salary DECIMAL(10,2)
 );
 
-INSERT INTO stock_prices VALUES
-    ('2023-01-01', 'AAPL', 150.25, 1000000),
-    ('2023-01-02', 'AAPL', 152.50, 1200000),
-    ('2023-01-03', 'AAPL', 149.75, 900000),
-    ('2023-01-01', 'GOOGL', 100.50, 500000),
-    ('2023-01-02', 'GOOGL', 102.25, 550000);
+INSERT INTO employees VALUES
+    (1, 'Alice', 'Sales', 50000),
+    (2, 'Bob', 'Marketing', 55000),
+    (3, 'Charlie', 'Sales', 52000),
+    (4, 'David', 'Marketing', 60000);
 '''
 )
 
-# Calculate 2-day moving average of stock prices
+# Demonstrate group-level aggregation with filtering
 result = conn.execute('''
 SELECT 
-    date, 
-    symbol, 
-    price,
-    AVG(price) OVER (PARTITION BY symbol ORDER BY date ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg
-FROM stock_prices
+    department, 
+    AVG(salary) as avg_salary,
+    COUNT(*) as employee_count
+FROM employees
+GROUP BY department
+HAVING AVG(salary) > 52000
 ''').fetchall()
 
 for row in result:
