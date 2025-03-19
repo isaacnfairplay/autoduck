@@ -1,20 +1,38 @@
-# Generated: 2025-03-19 10:47:37.306365
-# Result: [(datetime.date(2023, 1, 1),), (datetime.date(2023, 1, 2),), (datetime.date(2023, 1, 3),), (datetime.date(2023, 1, 4),), (datetime.date(2023, 1, 5),), (datetime.date(2023, 1, 6),), (datetime.date(2023, 1, 7),), (datetime.date(2023, 1, 8),), (datetime.date(2023, 1, 9),), (datetime.date(2023, 1, 10),)]
+# Generated: 2025-03-19 10:48:31.139191
+# Result: [('Engineering', 88500.0, Decimal('92000.00'), 2), ('Sales', 72000.0, Decimal('72000.00'), 1), ('Marketing', 65000.0, Decimal('65000.00'), 1)]
 # Valid: True
-# Variable date: Type: tuple
-# Attributes/Methods: count, index
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-result = conn.execute('''WITH RECURSIVE date_series AS (
-    SELECT DATE '2023-01-01' AS generated_date
-    UNION ALL
-    SELECT generated_date + INTERVAL 1 DAY
-    FROM date_series
-    WHERE generated_date < DATE '2023-01-10'
-)
-SELECT * FROM date_series''').fetchall()
+# Create and populate employees table
+conn.execute('''
+CREATE TABLE employees (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    department TEXT,
+    salary DECIMAL(10,2)
+);
+''')
 
-for date in result:
-    print(date[0])
+conn.executemany('INSERT INTO employees VALUES (?, ?, ?, ?)', [
+    (1, 'Alice', 'Engineering', 85000),
+    (2, 'Bob', 'Sales', 72000),
+    (3, 'Charlie', 'Engineering', 92000),
+    (4, 'Diana', 'Marketing', 65000)
+])
+
+# Calculate department-level salary statistics
+result = conn.execute('''
+SELECT 
+    department, 
+    AVG(salary) as avg_salary,
+    MAX(salary) as max_salary,
+    COUNT(*) as employee_count
+FROM employees
+GROUP BY department
+ORDER BY avg_salary DESC
+''').fetchall()
+
+for row in result:
+    print(f'Department: {row[0]}, Avg Salary: ${row[1]}, Max Salary: ${row[2]}, Employees: {row[3]}')
