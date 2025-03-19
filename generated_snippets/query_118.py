@@ -1,5 +1,5 @@
-# Generated: 2025-03-19 10:16:39.339961
-# Result: [(datetime.date(2023, 1, 4), Decimal('180.000'))]
+# Generated: 2025-03-19 10:18:20.047018
+# Result: (Decimal('0.000'),)
 # Valid: True
 import duckdb
 
@@ -14,12 +14,12 @@ conn.execute('''
         ('2023-01-04', 180)
 ''');
 
-# Query sales for specific date
+# Handle scenario of non-existent date
 result = conn.execute('''
-    SELECT date, amount
-    FROM sales
-    WHERE date = '2023-01-04'
-''').fetchall()
+    SELECT COALESCE(
+        (SELECT amount FROM sales WHERE date = '2023-01-05'), 
+        0
+    ) AS sales_amount
+''').fetchone()
 
-for row in result:
-    print(row)
+print(f'Sales for non-existent date: {result[0]}')
