@@ -1,3 +1,4 @@
+<!-- Save this as "photo-pupil-tracker.html" -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,59 +8,113 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
+            background-color: #1a1a1a;
+            color: #ffffff;
             margin: 20px;
+            padding: 20px;
         }
-        #photoContainer {
-            max-width: 800px;
-            margin: 20px auto;
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .step {
+            background-color: #2d2d2d;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
         }
         #currentPhoto {
             max-width: 100%;
             height: auto;
+            border: 2px solid #444;
+            border-radius: 5px;
         }
         #snapshots {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 15px;
+            margin-top: 15px;
         }
         .snapshot {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             cursor: pointer;
             display: none;
+            border: 1px solid #666;
+            border-radius: 3px;
         }
         #video {
             width: 200px;
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
+            border: 2px solid #444;
+            border-radius: 5px;
         }
         canvas { display: none; }
+        #log {
+            background-color: #252525;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 14px;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4a4a4a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #666;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
-    <h1>Photo Scroll with Pupil Tracking</h1>
-    
-    <input type="file" id="photoUpload" accept="image/*" multiple>
-    <div id="photoContainer">
-        <img id="currentPhoto" src="" alt="Current Photo">
-        <div id="snapshots">
-            <img id="snap1" class="snapshot" alt="1s">
-            <img id="snap3" class="snapshot" alt="3s">
-            <img id="snap5" class="snapshot" alt="5s">
+    <div class="container">
+        <h1>Photo Scroll with Pupil Tracking</h1>
+
+        <div class="step">
+            <h2>Step 1: Upload Photos</h2>
+            <input type="file" id="photoUpload" accept="image/*" multiple>
         </div>
+
+        <div class="step">
+            <h2>Step 2: View Photos & Snapshots</h2>
+            <div id="photoContainer">
+                <img id="currentPhoto" src="" alt="Current Photo">
+                <div id="snapshots">
+                    <img id="snap1" class="snapshot" alt="1s Snapshot">
+                    <img id="snap3" class="snapshot" alt="3s Snapshot">
+                    <img id="snap5" class="snapshot" alt="5s Snapshot">
+                </div>
+            </div>
+            <button id="startButton" style="display: none;">Start Slideshow</button>
+        </div>
+
+        <div class="step">
+            <h2>Step 3: Activity Log</h2>
+            <div id="log"></div>
+        </div>
+
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
     </div>
-    
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
 
     <script>
         const photoUpload = document.getElementById('photoUpload');
         const currentPhoto = document.getElementById('currentPhoto');
+        const startButton = document.getElementById('startButton');
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
+        const log = document.getElementById('log');
         const ctx = canvas.getContext('2d');
         const snapshots = {
             snap1: document.getElementById('snap1'),
@@ -71,6 +126,13 @@
         let currentIndex = 0;
         let intervalId = null;
 
+        // Logging function
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${message}<br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
         // Camera setup
         async function setupCamera() {
             try {
@@ -78,15 +140,17 @@
                     video: { facingMode: 'user' } 
                 });
                 video.srcObject = stream;
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth || 200;
+                canvas.height = video.videoHeight || 150;
+                addLog('Camera initialized successfully');
             } catch (err) {
                 console.error('Camera error:', err);
+                addLog('Failed to access camera: ' + err.message);
                 alert('Please allow camera access to track pupil dilation');
             }
         }
 
-        // Basic pupil detection (simplified)
+        // Basic pupil detection
         function detectPupil() {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             return canvas.toDataURL('image/jpeg');
@@ -94,12 +158,13 @@
 
         // Photo upload handling
         photoUpload.addEventListener('change', (e) => {
-            photos = Array.from(e.target.files).map(file => 
-                URL.createObjectURL(file)
-            );
+            photos = Array.from(e.target.files).map(file => ({
+                url: URL.createObjectURL(file),
+                name: file.name
+            }));
             if (photos.length > 0) {
-                currentIndex = 0;
-                startPhotoCycle();
+                addLog(`Uploaded ${photos.length} photos`);
+                startButton.style.display = 'block';
             }
         });
 
@@ -110,26 +175,30 @@
             function showNextPhoto() {
                 if (photos.length === 0) return;
 
-                currentPhoto.src = photos[currentIndex];
+                const photo = photos[currentIndex];
+                currentPhoto.src = photo.url;
                 resetSnapshots();
+                addLog(`Displaying photo: ${photo.name} (${currentIndex + 1}/${photos.length})`);
                 
-                // Take snapshots at 1, 3, 5 seconds
-                setTimeout(() => takeSnapshot('snap1'), 1000);
-                setTimeout(() => takeSnapshot('snap3'), 3000);
-                setTimeout(() => takeSnapshot('snap5'), 5000);
+                // Take snapshots
+                setTimeout(() => takeSnapshot('snap1', '1 second'), 1000);
+                setTimeout(() => takeSnapshot('snap3', '3 seconds'), 3000);
+                setTimeout(() => takeSnapshot('snap5', '5 seconds'), 5000);
 
                 currentIndex = (currentIndex + 1) % photos.length;
             }
 
             showNextPhoto();
-            intervalId = setInterval(showNextPhoto, 6000); // 5s display + 1s buffer
+            intervalId = setInterval(showNextPhoto, 6000);
+            addLog('Slideshow started');
         }
 
         // Snapshot handling
-        function takeSnapshot(id) {
+        function takeSnapshot(id, timeLabel) {
             const snapshot = snapshots[id];
             snapshot.src = detectPupil();
             snapshot.style.display = 'block';
+            addLog(`Captured snapshot at ${timeLabel} for photo ${currentIndex}`);
         }
 
         function resetSnapshots() {
@@ -139,15 +208,20 @@
             });
         }
 
-        // Toggle snapshot visibility
+        // Event listeners
+        startButton.addEventListener('click', startPhotoCycle);
+
         Object.values(snapshots).forEach(snap => {
             snap.addEventListener('click', () => {
-                snap.style.display = snap.style.display === 'none' ? 'block' : 'none';
+                const isHidden = snap.style.display === 'none';
+                snap.style.display = isHidden ? 'block' : 'none';
+                addLog(`Snapshot ${snap.alt} ${isHidden ? 'shown' : 'hidden'}`);
             });
         });
 
         // Initialize
         setupCamera();
+        addLog('Application initialized');
     </script>
 </body>
 </html>
