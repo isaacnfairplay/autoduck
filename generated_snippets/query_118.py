@@ -1,16 +1,33 @@
-# Generated: 2025-03-19 09:21:06.283563
-# Result: [(6, 12), (7, 14), (8, 16), (9, 18), (10, 20)]
+# Generated: 2025-03-19 09:22:52.421880
+# Result: [('Laptop', 'Electronics', Decimal('1200.50'), 1), ('Smartphone', 'Electronics', Decimal('800.25'), 2), ('Headphones', 'Electronics', Decimal('150.75'), 3), ('Running Shoes', 'Sports', Decimal('120.00'), 1)]
 # Valid: True
 import duckdb
 
+# Create an in-memory database and table with product sales
 conn = duckdb.connect(':memory:')
+conn.execute('''
+    CREATE TABLE product_sales (
+        product_id INTEGER,
+        product_name VARCHAR,
+        category VARCHAR,
+        sale_amount DECIMAL(10,2)
+    );
 
-# Create a sample table
-conn.execute('CREATE TABLE numbers (value INT)')
-conn.executemany('INSERT INTO numbers VALUES (?)', [(x,) for x in range(1, 11)])
+    INSERT INTO product_sales VALUES
+    (1, 'Laptop', 'Electronics', 1200.50),
+    (2, 'Smartphone', 'Electronics', 800.25),
+    (3, 'Headphones', 'Electronics', 150.75),
+    (4, 'Running Shoes', 'Sports', 120.00);
+''')
 
-# Filter and transform data
-result = conn.execute('SELECT value, value * 2 as doubled FROM numbers WHERE value > 5').fetchall()
+# Demonstrate window function: ranking sales within categories
+result = conn.execute('''
+    SELECT 
+        product_name, 
+        category, 
+        sale_amount,
+        RANK() OVER (PARTITION BY category ORDER BY sale_amount DESC) as sales_rank
+    FROM product_sales
+''').fetchall()
 
-for row in result:
-    print(f'Original: {row[0]}, Doubled: {row[1]}')
+print(result)
