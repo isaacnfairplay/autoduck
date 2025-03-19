@@ -1,21 +1,28 @@
-# Generated: 2025-03-19 11:52:13.714702
-# Result: [(2, 102, Decimal('275.75'), 1), (1, 101, Decimal('150.50'), 1), (3, 101, Decimal('89.99'), 2)]
+# Generated: 2025-03-19 11:53:05.752885
+# Result: [(1, 'Electronics', Decimal('1500.50'), Decimal('1500.50')), (3, 'Electronics', Decimal('2200.75'), Decimal('3701.25')), (4, 'Books', Decimal('350.00'), Decimal('350.00')), (2, 'Clothing', Decimal('850.25'), Decimal('850.25'))]
 # Valid: True
 import duckdb
 
-# Create an in-memory database and sample data
+# Create in-memory database
 conn = duckdb.connect(':memory:')
-conn.execute('CREATE TABLE orders (order_id INT, customer_id INT, total_amount DECIMAL(10,2))')
-conn.executemany('INSERT INTO orders VALUES (?, ?, ?)', [(1, 101, 150.50), (2, 102, 275.75), (3, 101, 89.99)])
 
-# Demonstrate window function to rank orders per customer
+# Create table with product sales data
+conn.execute('CREATE TABLE product_sales (product_id INT, category TEXT, sales DECIMAL(10,2))')
+conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?)', [
+    (1, 'Electronics', 1500.50),
+    (2, 'Clothing', 850.25),
+    (3, 'Electronics', 2200.75),
+    (4, 'Books', 350.00)
+])
+
+# Use window function to calculate category-wise running total
 result = conn.execute('''
     SELECT 
-        order_id, 
-        customer_id, 
-        total_amount,
-        RANK() OVER (PARTITION BY customer_id ORDER BY total_amount DESC) as order_rank
-    FROM orders
+        product_id, 
+        category, 
+        sales, 
+        SUM(sales) OVER (PARTITION BY category ORDER BY sales) as running_category_total
+    FROM product_sales
 ''').fetchall()
 
 print(result)
