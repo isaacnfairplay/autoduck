@@ -1,41 +1,28 @@
-# Generated: 2025-03-19 16:39:09.532993
-# Result: [(1, 'John', None, 0), (2, 'Alice', 1, 1), (3, 'Bob', 1, 1), (4, 'Charlie', 2, 2), (5, 'David', 3, 2)]
+# Generated: 2025-03-19 16:41:50.880886
+# Result: [(1, 10.5), (2, 20.100000381469727)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create organizational hierarchy table
-conn.execute('''
-CREATE TABLE employees (
-    employee_id INTEGER PRIMARY KEY,
-    name TEXT,
-    manager_id INTEGER
-);
-''')
+# Create sample table
+conn.execute('''CREATE TABLE measurements (
+    group_id INTEGER,
+    value FLOAT
+)''')
 
-# Insert hierarchical data
-conn.executemany('INSERT INTO employees VALUES (?, ?, ?)', [
-    (1, 'John', None),   # CEO
-    (2, 'Alice', 1),     # Reports to John
-    (3, 'Bob', 1),       # Reports to John
-    (4, 'Charlie', 2),   # Reports to Alice
-    (5, 'David', 3)      # Reports to Bob
+# Insert sample data
+conn.executemany('INSERT INTO measurements VALUES (?, ?)', [
+    (1, 10.5), (1, 15.2), (1, 8.7),
+    (2, 20.1), (2, 22.3), (2, 18.9)
 ])
 
-# Recursive CTE to find full reporting chain
-result = conn.execute('''
-WITH RECURSIVE reporting_chain AS (
-    SELECT employee_id, name, manager_id, 0 as depth
-    FROM employees WHERE manager_id IS NULL
-
-    UNION ALL
-
-    SELECT e.employee_id, e.name, e.manager_id, rc.depth + 1
-    FROM employees e
-    JOIN reporting_chain rc ON e.manager_id = rc.employee_id
-)
-SELECT * FROM reporting_chain
+# Custom aggregation using percentile_cont
+result = conn.execute('''SELECT 
+    group_id, 
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value) as median_value
+FROM measurements
+GROUP BY group_id
 ''').fetchall()
 
 print(result)
