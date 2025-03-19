@@ -1,35 +1,38 @@
-# Generated: 2025-03-19 18:57:18.232781
-# Result: [(1, datetime.datetime(2023, 6, 1, 10, 0), 22.5, 22.5), (1, datetime.datetime(2023, 6, 1, 11, 0), 23.100000381469727, 22.800000190734863), (2, datetime.datetime(2023, 6, 1, 10, 0), 21.799999237060547, 21.799999237060547), (2, datetime.datetime(2023, 6, 1, 11, 0), 22.299999237060547, 22.049999237060547)]
+# Generated: 2025-03-19 18:58:20.277658
+# Result: [('Clothing', 2, 100, Decimal('79.50'), Decimal('7950.00')), ('Electronics', 1, 50, Decimal('499.99'), Decimal('47499.25')), ('Electronics', 3, 25, Decimal('899.99'), Decimal('47499.25')), ('Home', 4, 75, Decimal('149.99'), Decimal('11249.25'))]
 # Valid: True
 import duckdb
 
-# Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create and populate temperature sensor data
-conn.sql("""
-CREATE TABLE sensor_readings (
-    sensor_id INTEGER,
-    timestamp TIMESTAMP,
-    temperature FLOAT
+# Create and populate product inventory table
+conn.sql('''
+CREATE TABLE inventory (
+    product_id INTEGER,
+    category VARCHAR,
+    stock_quantity INTEGER,
+    price DECIMAL(10,2)
 );
 
-INSERT INTO sensor_readings VALUES
-    (1, '2023-06-01 10:00:00', 22.5),
-    (1, '2023-06-01 11:00:00', 23.1),
-    (2, '2023-06-01 10:00:00', 21.8),
-    (2, '2023-06-01 11:00:00', 22.3);
-""")
+INSERT INTO inventory VALUES
+    (1, 'Electronics', 50, 499.99),
+    (2, 'Clothing', 100, 79.50),
+    (3, 'Electronics', 25, 899.99),
+    (4, 'Home', 75, 149.99);
+'''
+)
 
-# Calculate moving average temperature per sensor
-result = conn.sql("""
+# Calculate total stock value by category with window function
+result = conn.sql('''
 SELECT 
-    sensor_id, 
-    timestamp, 
-    temperature,
-    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as rolling_avg
-FROM sensor_readings
-""").fetchall()
+    category, 
+    product_id, 
+    stock_quantity, 
+    price,
+    SUM(stock_quantity * price) OVER (PARTITION BY category) as category_total_value
+FROM inventory
+ORDER BY category, product_id
+''').fetchall()
 
 for row in result:
-    print(f"Sensor {row[0]}: {row[1]} - Temp: {row[2]}°C, Rolling Avg: {row[3]}°C")
+    print(f"Category: {row[0]}, Product ID: {row[1]}, Stock: {row[2]}, Price: ${row[3]}, Category Total Value: ${row[4]:.2f}")
