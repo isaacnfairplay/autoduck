@@ -23,7 +23,7 @@
             margin-bottom: 20px;
             border-radius: 5px;
         }
-        #currentPhoto {
+        #currentPhoto, #baselinePreview {
             max-width: 100%;
             height: auto;
             border: 2px solid #444;
@@ -50,6 +50,7 @@
             right: 20px;
             border: 2px solid #444;
             border-radius: 5px;
+            display: none;
         }
         canvas { display: none; }
         #log {
@@ -68,6 +69,7 @@
             padding: 10px 20px;
             cursor: pointer;
             border-radius: 5px;
+            margin: 5px;
         }
         button:hover {
             background-color: #666;
@@ -84,10 +86,20 @@
         <div class="step">
             <h2>Step 1: Upload Photos</h2>
             <input type="file" id="photoUpload" accept="image/*" multiple>
+            <button id="analyzeButton" style="display: none;">Analyze Pupil Baseline</button>
+        </div>
+
+        <div class="step" id="baselineStep" style="display: none;">
+            <h2>Step 2: Confirm Pupil Baseline</h2>
+            <img id="baselinePreview" src="" alt="Baseline Preview">
+            <div>
+                <button id="confirmBaseline">Confirm</button>
+                <button id="retryBaseline">Retry</button>
+            </div>
         </div>
 
         <div class="step">
-            <h2>Step 2: View Photos & Snapshots</h2>
+            <h2>Step 3: View Photos & Snapshots</h2>
             <div id="photoContainer">
                 <img id="currentPhoto" src="" alt="Current Photo">
                 <div id="snapshots">
@@ -100,7 +112,7 @@
         </div>
 
         <div class="step">
-            <h2>Step 3: Activity Log</h2>
+            <h2>Step 4: Activity Log</h2>
             <div id="log"></div>
         </div>
 
@@ -110,6 +122,11 @@
 
     <script>
         const photoUpload = document.getElementById('photoUpload');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const baselineStep = document.getElementById('baselineStep');
+        const baselinePreview = document.getElementById('baselinePreview');
+        const confirmBaseline = document.getElementById('confirmBaseline');
+        const retryBaseline = document.getElementById('retryBaseline');
         const currentPhoto = document.getElementById('currentPhoto');
         const startButton = document.getElementById('startButton');
         const video = document.getElementById('video');
@@ -125,6 +142,7 @@
         let photos = [];
         let currentIndex = 0;
         let intervalId = null;
+        let stream = null;
 
         // Logging function
         function addLog(message) {
@@ -136,22 +154,26 @@
         // Camera setup
         async function setupCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
+                stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'user' } 
                 });
                 video.srcObject = stream;
+                video.style.display = 'block';
+                await video.play(); // Ensure video is playing
                 canvas.width = video.videoWidth || 200;
                 canvas.height = video.videoHeight || 150;
                 addLog('Camera initialized successfully');
+                return true;
             } catch (err) {
                 console.error('Camera error:', err);
                 addLog('Failed to access camera: ' + err.message);
                 alert('Please allow camera access to track pupil dilation');
+                return false;
             }
         }
 
         // Basic pupil detection
-        function detectPupil() {
+        function captureImage() {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             return canvas.toDataURL('image/jpeg');
         }
@@ -164,8 +186,31 @@
             }));
             if (photos.length > 0) {
                 addLog(`Uploaded ${photos.length} photos`);
-                startButton.style.display = 'block';
+                analyzeButton.style.display = 'block';
             }
+        });
+
+        // Analyze baseline
+        analyzeButton.addEventListener('click', async () => {
+            const cameraSuccess = await setupCamera();
+            if (cameraSuccess) {
+                baselinePreview.src = captureImage();
+                baselineStep.style.display = 'block';
+                analyzeButton.style.display = 'none';
+                addLog('Showing pupil baseline preview');
+            }
+        });
+
+        // Baseline confirmation
+        confirmBaseline.addEventListener('click', () => {
+            baselineStep.style.display = 'none';
+            startButton.style.display = 'block';
+            addLog('Baseline confirmed');
+        });
+
+        retryBaseline.addEventListener('click', () => {
+            baselinePreview.src = captureImage();
+            addLog('Retrying baseline capture');
         });
 
         // Photo cycling
@@ -180,7 +225,6 @@
                 resetSnapshots();
                 addLog(`Displaying photo: ${photo.name} (${currentIndex + 1}/${photos.length})`);
                 
-                // Take snapshots
                 setTimeout(() => takeSnapshot('snap1', '1 second'), 1000);
                 setTimeout(() => takeSnapshot('snap3', '3 seconds'), 3000);
                 setTimeout(() => takeSnapshot('snap5', '5 seconds'), 5000);
@@ -196,7 +240,7 @@
         // Snapshot handling
         function takeSnapshot(id, timeLabel) {
             const snapshot = snapshots[id];
-            snapshot.src = detectPupil();
+            snapshot.src = captureImage();
             snapshot.style.display = 'block';
             addLog(`Captured snapshot at ${timeLabel} for photo ${currentIndex}`);
         }
@@ -220,7 +264,6 @@
         });
 
         // Initialize
-        setupCamera();
         addLog('Application initialized');
     </script>
 </body>
