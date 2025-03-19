@@ -1,30 +1,26 @@
-# Generated: 2025-03-19 12:33:47.991122
-# Result: [(3, 'Electronics', Decimal('1200.00'))]
+# Generated: 2025-03-19 12:34:38.909879
+# Result: [(1, 'Electronics', 'Tech products'), (2, 'Clothing', 'Apparel and accessories'), (3, 'Home', 'Household items')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create products table
+# Create product category table
 conn.execute('''
-CREATE TABLE products (
-    product_id INT,
-    category VARCHAR,
-    price DECIMAL(10,2)
+CREATE TABLE categories (
+    category_id INT,
+    name VARCHAR,
+    description VARCHAR
 );
 
-INSERT INTO products VALUES
-    (1, 'Electronics', 500.00),
-    (2, 'Clothing', 75.50),
-    (3, 'Electronics', 1200.00);
-''')
+INSERT INTO categories VALUES
+    (1, 'Electronics', 'Tech products'),
+    (2, 'Clothing', 'Apparel and accessories'),
+    (3, 'Home', 'Household items');
+'''
+)
 
-# Select specific columns with condition
-result = conn.execute('''
-SELECT product_id, category, price
-FROM products
-WHERE category = 'Electronics' AND price > 750
-''').fetchall()
-
+# Query to list all product categories
+result = conn.execute('SELECT * FROM categories').fetchall()
 for row in result:
     print(row)
