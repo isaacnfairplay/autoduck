@@ -1,16 +1,31 @@
-# Generated: 2025-03-19 13:52:04.190829
-# Result: [([4.0, 6.0, 7.0, 8.0, 10.0],)]
+# Generated: 2025-03-19 13:52:57.009599
+# Result: [(1, True, 'Dell', 2), (2, True, 'Apple', 2)]
 # Valid: True
 import duckdb
 
 # Connect to in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create table with numeric lists
-conn.execute('CREATE TABLE number_arrays (values_list INTEGER[])')
-conn.execute('INSERT INTO number_arrays VALUES ([10, 20, 30, 40, 50])')
+# Create table with complex nested data structure
+conn.execute('''CREATE TABLE product_catalog (
+    product_id INTEGER,
+    tags VARCHAR[],
+    metadata STRUCT(brand VARCHAR, specs VARCHAR[])
+)''')
 
-# Apply complex mathematical transformation (exponential & floor)
-result = conn.execute('SELECT array_transform(values_list, x -> floor(sqrt(x * 2))) as transformed_values FROM number_arrays').fetchall()
+# Insert sample nested data
+conn.execute('''INSERT INTO product_catalog VALUES
+    (1, ['electronics', 'computer'], {'brand': 'Dell', 'specs': ['i7', '16GB']}),
+    (2, ['electronics', 'smartphone'], {'brand': 'Apple', 'specs': ['A15', '128GB']})
+''')
+
+# Query nested structure using array and struct operations
+result = conn.execute('''SELECT
+    product_id,
+    array_contains(tags, 'electronics') as is_electronics,
+    metadata.brand as product_brand,
+    array_length(metadata.specs) as spec_count
+FROM product_catalog
+''').fetchall()
 
 print(result)
