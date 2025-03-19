@@ -1,29 +1,29 @@
-# Generated: 2025-03-19 09:11:26.828488
-# Result: [(1, datetime.datetime(2023, 7, 15, 10, 0), Decimal('100.50'), Decimal('100.50'), 225.41666666666666), (1, datetime.datetime(2023, 7, 15, 11, 30), Decimal('250.75'), Decimal('351.25'), 225.41666666666666), (1, datetime.datetime(2023, 7, 15, 13, 45), Decimal('325.00'), Decimal('676.25'), 225.41666666666666), (2, datetime.datetime(2023, 7, 15, 12, 15), Decimal('75.25'), Decimal('75.25'), 75.25)]
+# Generated: 2025-03-19 09:12:18.470476
+# Result: [('Electronics', datetime.date(2023, 7, 15), Decimal('1200.50'), Decimal('1200.50')), ('Electronics', datetime.date(2023, 7, 17), Decimal('800.75'), Decimal('2001.25')), ('Clothing', datetime.date(2023, 7, 16), Decimal('500.25'), Decimal('500.25')), ('Clothing', datetime.date(2023, 7, 18), Decimal('350.00'), Decimal('850.25'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create time series transaction data
-conn.execute('CREATE TABLE transactions (user_id INT, amount DECIMAL(10,2), timestamp TIMESTAMP)')
+# Create sales table
+conn.execute('CREATE TABLE sales (category TEXT, amount DECIMAL(10,2), sale_date DATE)')
 
-conn.executemany('INSERT INTO transactions VALUES (?, ?, ?)', [
-    (1, 100.50, '2023-07-15 10:00:00'),
-    (1, 250.75, '2023-07-15 11:30:00'),
-    (2, 75.25, '2023-07-15 12:15:00'),
-    (1, 325.00, '2023-07-15 13:45:00')
+# Insert sample data
+conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
+    ('Electronics', 1200.50, '2023-07-15'),
+    ('Clothing', 500.25, '2023-07-16'),
+    ('Electronics', 800.75, '2023-07-17'),
+    ('Clothing', 350.00, '2023-07-18')
 ])
 
-# Calculate user-level cumulative transaction metrics
+# Calculate running total per category
 result = conn.execute('''SELECT
-    user_id,
-    timestamp,
+    category,
+    sale_date,
     amount,
-    SUM(amount) OVER (PARTITION BY user_id ORDER BY timestamp) as cumulative_amount,
-    AVG(amount) OVER (PARTITION BY user_id) as avg_transaction
-FROM transactions
+    SUM(amount) OVER (PARTITION BY category ORDER BY sale_date) as running_total
+FROM sales
 ''').fetchall()
 
 for row in result:
-    print(f"User ID: {row[0]}, Time: {row[1]}, Amount: ${row[2]}, Cumulative: ${row[3]}, Avg Transaction: ${row[4]:.2f}")
+    print(f'Category: {row[0]}, Date: {row[1]}, Amount: ${row[2]}, Running Total: ${row[3]}')
