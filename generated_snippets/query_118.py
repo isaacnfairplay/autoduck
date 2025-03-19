@@ -1,33 +1,32 @@
-# Generated: 2025-03-19 12:38:05.233816
-# Result: [('Laptop', 'Electronics', Decimal('1200.00'), 1), ('Smartphone', 'Electronics', Decimal('800.00'), 2), ('Chair', 'Furniture', Decimal('250.50'), 1), ('Pants', 'Clothing', Decimal('75.00'), 1), ('Shirt', 'Clothing', Decimal('50.00'), 2)]
+# Generated: 2025-03-19 12:38:56.185648
+# Result: [('Laptop', 'Electronics', Decimal('1200.00'), 1000.0), ('Smartphone', 'Electronics', Decimal('800.00'), 1000.0), ('Shirt', 'Clothing', Decimal('50.00'), 62.5), ('Pants', 'Clothing', Decimal('75.00'), 62.5)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
 conn.execute('''
-CREATE TABLE sales (
+CREATE TABLE product_sales (
     product VARCHAR,
     category VARCHAR,
     amount DECIMAL(10,2)
 );
 
-INSERT INTO sales VALUES
+INSERT INTO product_sales VALUES
     ('Laptop', 'Electronics', 1200.00),
     ('Smartphone', 'Electronics', 800.00),
     ('Shirt', 'Clothing', 50.00),
-    ('Pants', 'Clothing', 75.00),
-    ('Chair', 'Furniture', 250.50)
-''')
+    ('Pants', 'Clothing', 75.00)
+''');
 
 result = conn.execute('''
 SELECT 
     product, 
     category, 
     amount,
-    RANK() OVER (PARTITION BY category ORDER BY amount DESC) as category_rank
-FROM sales
-''').fetchall()
+    (SELECT AVG(amount) FROM product_sales ps WHERE ps.category = product_sales.category) as category_avg
+FROM product_sales
+''').fetchall();
 
 for row in result:
     print(row)
