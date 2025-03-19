@@ -1,33 +1,34 @@
-# Generated: 2025-03-19 08:34:07.170212
-# Result: [('Electronics', 'Smartphone', 800, 75, 1, 75), ('Electronics', 'Laptop', 1200, 50, 2, 125), ('Clothing', 'Shirt', 50, 100, 1, 100), ('Clothing', 'Jeans', 80, 60, 2, 160)]
+# Generated: 2025-03-19 08:35:02.431507
+# Result: [(1, datetime.date(2023, 1, 15), Decimal('500.00'), Decimal('500.00')), (1, datetime.date(2023, 2, 20), Decimal('750.00'), Decimal('1250.00')), (2, datetime.date(2023, 1, 10), Decimal('250.00'), Decimal('250.00')), (2, datetime.date(2023, 2, 25), Decimal('400.00'), Decimal('650.00'))]
 # Valid: True
-# Variable results: Type: list
-# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
 import duckdb
 
+# Create an in-memory database with sales data
 conn = duckdb.connect(':memory:')
-
-# Create sample sales data with timestamps
-conn.sql("""
-CREATE TABLE sales AS
-SELECT * FROM (
-    VALUES
-    ('2023-01-15', 'Product A', 100),
-    ('2023-01-16', 'Product B', 150),
-    ('2023-01-17', 'Product A', 200),
-    ('2023-01-18', 'Product C', 250)
-) t(sale_date, product, amount)
+conn.execute("""
+    CREATE TABLE sales (
+        product_id INT, 
+        sale_date DATE, 
+        quantity INT, 
+        revenue DECIMAL(10,2)
+    );
+    INSERT INTO sales VALUES
+        (1, '2023-01-15', 10, 500.00),
+        (1, '2023-02-20', 15, 750.00),
+        (2, '2023-01-10', 5, 250.00),
+        (2, '2023-02-25', 8, 400.00);
 """)
 
-# Demonstrate cumulative sum window function
-results = conn.sql("""
-SELECT 
-    sale_date, 
-    product, 
-    amount,
-    SUM(amount) OVER (PARTITION BY product ORDER BY sale_date) as cumulative_product_sales
-FROM sales
+# Demonstrate window function with cumulative revenue tracking
+result = conn.execute("""
+    SELECT 
+        product_id, 
+        sale_date, 
+        revenue,
+        SUM(revenue) OVER (PARTITION BY product_id ORDER BY sale_date) as cumulative_revenue
+    FROM sales
+    ORDER BY product_id, sale_date
 """).fetchall()
 
-for row in results:
-    print(row)
+for row in result:
+    print(f"Product {row[0]}: {row[1]} - Revenue: ${row[2]}, Cumulative: ${row[3]}")
