@@ -1,29 +1,27 @@
-# Generated: 2025-03-19 08:54:02.275763
-# Result: [('Laptop', 'Electronics', Decimal('1200.50'), 1), ('Phone', 'Electronics', Decimal('800.25'), 2), ('Tablet', 'Electronics', Decimal('500.75'), 3)]
+# Generated: 2025-03-19 08:54:53.826885
+# Result: [('Electronics', Decimal('2000.75'), 97.52620034121374), ('Literature', Decimal('50.75'), 2.4737996587862536)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create product table with sales tracking
-conn.execute('CREATE TABLE products (id INT PRIMARY KEY, name TEXT, category TEXT, price DECIMAL(10,2), stock INT)')
-
-# Insert sample product data
-conn.executemany('INSERT INTO products VALUES (?, ?, ?, ?, ?)', [
-    (1, 'Laptop', 'Electronics', 1200.50, 50),
-    (2, 'Phone', 'Electronics', 800.25, 75),
-    (3, 'Tablet', 'Electronics', 500.75, 30)
+# Create and populate table for calculating sales percentages
+conn.execute('CREATE TABLE sales (product TEXT, category TEXT, amount DECIMAL(10,2))')
+conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
+    ('Laptop', 'Electronics', 1200.50),
+    ('Phone', 'Electronics', 800.25),
+    ('Book', 'Literature', 50.75)
 ])
 
-# Analyze products with window function to rank by price within category
+# Calculate total sales and percentage contribution per category
 result = conn.execute('''
     SELECT 
-        name, 
         category, 
-        price,
-        RANK() OVER (PARTITION BY category ORDER BY price DESC) as price_rank
-    FROM products
+        SUM(amount) as total_sales,
+        SUM(amount) / (SELECT SUM(amount) FROM sales) * 100 as sales_percentage
+    FROM sales
+    GROUP BY category
 ''').fetchall()
 
 for row in result:
-    print(f'Product: {row[0]}, Category: {row[1]}, Price: ${row[2]}, Price Rank: {row[3]}')
+    print(f"Category: {row[0]}, Total Sales: ${row[1]:.2f}, Sales Percentage: {row[2]:.2f}%")
