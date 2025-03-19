@@ -1,34 +1,33 @@
-# Generated: 2025-03-19 09:56:14.202402
-# Result: [(3, 'Electronics', Decimal('1200.00'), 1), (1, 'Electronics', Decimal('500.50'), 2), (4, 'Books', Decimal('75.25'), 1), (2, 'Clothing', Decimal('250.75'), 1)]
+# Generated: 2025-03-19 10:00:02.118946
+# Result: [('2023-01-01', Decimal('500.50'), 500.5), ('2023-01-02', Decimal('250.75'), 375.625), ('2023-01-03', Decimal('1200.00'), 650.4166666666666), ('2023-01-04', Decimal('750.25'), 733.6666666666666)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create employee hierarchy table
+# Create time series sales data
 conn.execute('''
-CREATE TABLE employees (
-    employee_id INT,
-    name VARCHAR,
-    manager_id INT
-);
+CREATE TABLE daily_sales AS
+SELECT * FROM (
+    VALUES
+    ('2023-01-01', 500.50),
+    ('2023-01-02', 250.75),
+    ('2023-01-03', 1200.00),
+    ('2023-01-04', 750.25)
+) t(sale_date, amount)
+''')
 
-INSERT INTO employees VALUES
-(1, 'CEO', NULL),
-(2, 'CTO', 1),
-(3, 'CFO', 1),
-(4, 'Engineering Manager', 2),
-(5, 'Sales Manager', 3),
-(6, 'Engineer', 4),
-(7, 'Sales Rep', 5);
-
-WITH RECURSIVE employee_hierarchy AS (
-    SELECT employee_id, name, manager_id, 1 AS depth
-    FROM employees WHERE manager_id IS NULL
-    UNION ALL
-    SELECT e.employee_id, e.name, e.manager_id, eh.depth + 1
-    FROM employees e
-    JOIN employee_hierarchy eh ON e.manager_id = eh.employee_id
-)
-SELECT * FROM employee_hierarchy;
+# Calculate 3-day moving average of sales
+result = conn.execute('''
+SELECT 
+    sale_date, 
+    amount,
+    AVG(amount) OVER (
+        ORDER BY sale_date
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) as rolling_3day_avg
+FROM daily_sales
 ''').fetchall()
+
+for row in result:
+    print(row)
