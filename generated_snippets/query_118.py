@@ -1,32 +1,35 @@
-# Generated: 2025-03-19 10:20:56.619904
-# Result: [(datetime.date(2023, 1, 1), 'Widget', Decimal('100.000'), 100.0), (datetime.date(2023, 1, 2), 'Widget', Decimal('150.000'), 125.0), (datetime.date(2023, 1, 3), 'Widget', Decimal('200.000'), 150.0), (datetime.date(2023, 1, 4), 'Widget', Decimal('180.000'), 176.66666666666666)]
+# Generated: 2025-03-19 10:21:49.888263
+# Result: [('Laptop', 'Electronics', 50, 1, 10.0), ('Smartphone', 'Electronics', 30, 2, -10.0), ('Desk Chair', 'Furniture', 25, 1, 0.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales data with dates
+# Create product inventory table with complex window function analysis
 conn.execute('''
-    CREATE TABLE sales (date DATE, product TEXT, amount DECIMAL);
-    INSERT INTO sales VALUES 
-        ('2023-01-01', 'Widget', 100),
-        ('2023-01-02', 'Widget', 150),
-        ('2023-01-03', 'Widget', 200),
-        ('2023-01-04', 'Widget', 180)
+    CREATE TABLE product_inventory (
+        product_id INTEGER,
+        product_name VARCHAR,
+        category VARCHAR,
+        stock_quantity INTEGER,
+        reorder_point INTEGER
+    );
+
+    INSERT INTO product_inventory VALUES
+        (1, 'Laptop', 'Electronics', 50, 20),
+        (2, 'Smartphone', 'Electronics', 30, 15),
+        (3, 'Desk Chair', 'Furniture', 25, 10)
 ''');
 
-# Calculate 3-day rolling average
+# Analyze inventory with advanced window functions
 result = conn.execute('''
     SELECT 
-        date, 
-        product, 
-        amount,
-        AVG(amount) OVER (
-            PARTITION BY product 
-            ORDER BY date 
-            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
-        ) AS rolling_avg
-    FROM sales
+        product_name,
+        category,
+        stock_quantity,
+        DENSE_RANK() OVER (PARTITION BY category ORDER BY stock_quantity DESC) as stock_rank,
+        stock_quantity - AVG(stock_quantity) OVER (PARTITION BY category) as stock_deviation
+    FROM product_inventory
 ''').fetchall()
 
 for row in result:
