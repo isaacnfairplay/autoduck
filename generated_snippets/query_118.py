@@ -1,27 +1,35 @@
-# Generated: 2025-03-19 09:00:04.965341
-# Result: [('Electronics', Decimal('500.25'), Decimal('500.25')), ('Electronics', Decimal('1000.50'), Decimal('1500.75')), ('Clothing', Decimal('600.30'), Decimal('600.30')), ('Clothing', Decimal('750.75'), Decimal('1351.05'))]
+# Generated: 2025-03-19 09:01:00.431018
+# Result: [('Electronics', 'Laptop', 1200, '2023-01-15', 1200), ('Electronics', 'Phone', 800, '2023-02-20', 2000), ('Electronics', 'Tablet', 500, '2023-05-12', 2500), ('Clothing', 'Shirt', 50, '2023-03-10', 50), ('Clothing', 'Jeans', 100, '2023-04-05', 150)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create category sales table
-conn.execute('CREATE TABLE category_sales (category TEXT, sale_amount DECIMAL(10,2))')
-conn.executemany('INSERT INTO category_sales VALUES (?, ?)', [
-    ('Electronics', 1000.50),
-    ('Electronics', 500.25),
-    ('Clothing', 750.75),
-    ('Clothing', 600.30)
-])
+# Create sample sales data with multiple columns
+conn.sql("""
+CREATE TABLE sales AS 
+SELECT * FROM (
+    VALUES
+    ('Electronics', 'Laptop', 1200, '2023-01-15'),
+    ('Electronics', 'Phone', 800, '2023-02-20'),
+    ('Clothing', 'Shirt', 50, '2023-03-10'),
+    ('Clothing', 'Jeans', 100, '2023-04-05'),
+    ('Electronics', 'Tablet', 500, '2023-05-12')
+) t(category, product, price, sale_date)
+""")
 
-# Calculate running total per category using window function
-result = conn.execute('''
-    SELECT 
-        category, 
-        sale_amount, 
-        SUM(sale_amount) OVER (PARTITION BY category ORDER BY sale_amount) as running_total
-    FROM category_sales
-''').fetchall()
+# Demonstrate window function: running total by category
+result = conn.sql("""
+SELECT 
+    category, 
+    product, 
+    price,
+    sale_date,
+    SUM(price) OVER (PARTITION BY category ORDER BY sale_date) as category_running_total
+FROM sales
+""").fetchall()
 
 for row in result:
-    print(f"Category: {row[0]}, Sale Amount: ${row[1]}, Running Total: ${row[2]:.2f}")
+    print(row)
+
+conn.close()
