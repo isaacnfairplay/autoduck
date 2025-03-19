@@ -1,33 +1,35 @@
-# Generated: 2025-03-19 17:23:59.430356
-# Result: [('Gadget', 'South', Decimal('1500.00'), Decimal('2300.00'), 1), ('Gadget', 'South', Decimal('800.00'), Decimal('2300.00'), 2), ('Widget', 'North', Decimal('1200.00'), Decimal('2200.00'), 1), ('Widget', 'North', Decimal('1000.00'), Decimal('2200.00'), 2)]
+# Generated: 2025-03-19 17:25:44.224493
+# Result: <duckdb.duckdb.DuckDBPyConnection object at 0x00000147DE9D6CB0>
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Demonstrate advanced window function with multiple calculations
-conn.execute('''
-    CREATE TABLE sales (
-        product TEXT,
-        region TEXT,
-        amount DECIMAL(10,2)
-    );
+# Create a table with geographic data
+conn.execute('''CREATE TABLE cities (
+    city TEXT,
+    population INT,
+    country TEXT,
+    latitude DOUBLE,
+    longitude DOUBLE
+)''')
 
-    INSERT INTO sales VALUES
-        ('Widget', 'North', 1000),
-        ('Gadget', 'South', 1500),
-        ('Widget', 'North', 1200),
-        ('Gadget', 'South', 800);
+# Insert sample data
+conn.execute('''INSERT INTO cities VALUES
+    ('New York', 8500000, 'USA', 40.7128, -74.0060),
+    ('London', 9000000, 'UK', 51.5074, -0.1278),
+    ('Tokyo', 14000000, 'Japan', 35.6762, 139.6503)''')
 
-    SELECT 
-        product, 
-        region, 
-        amount,
-        SUM(amount) OVER (PARTITION BY product) as total_product_sales,
-        RANK() OVER (PARTITION BY region ORDER BY amount DESC) as sales_rank
-    FROM sales;
+# Perform geospatial query using haversine distance
+result = conn.execute('''
+    SELECT city, 
+           ROUND(6371 * 2 * ASIN(SQRT(
+               POWER(SIN((RADIANS(40.7128) - RADIANS(latitude)) / 2), 2) +
+               COS(RADIANS(40.7128)) * COS(RADIANS(latitude)) *
+               POWER(SIN((RADIANS(-74.0060) - RADIANS(longitude)) / 2), 2)
+           )), 2) AS distance_km
+    FROM cities
+    ORDER BY distance_km
 ''')
 
-result = conn.fetchall()
-for row in result:
-    print(row)
+print(result.fetchall())
