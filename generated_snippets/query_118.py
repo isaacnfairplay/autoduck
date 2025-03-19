@@ -1,25 +1,33 @@
-# Generated: 2025-03-19 10:19:11.669850
-# Result: [(datetime.date(2023, 1, 2), Decimal('150.000')), (datetime.date(2023, 1, 3), Decimal('200.000'))]
+# Generated: 2025-03-19 10:20:04.369039
+# Result: [('South', 'Smartphone', Decimal('35000.00'), 1), ('West', 'Laptop', Decimal('45000.00'), 1), ('North', 'Laptop', Decimal('50000.00'), 1), ('East', 'Tablet', Decimal('25000.00'), 1)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate sales table with single date column
+# Create geographic sales data with product and region
 conn.execute('''
-    CREATE TABLE sales (date DATE, amount DECIMAL);
-    INSERT INTO sales VALUES
-        ('2023-01-01', 100),
-        ('2023-01-02', 150),
-        ('2023-01-03', 200)
-''')
+    CREATE TABLE regional_sales (
+        region VARCHAR,
+        product VARCHAR,
+        sales_amount DECIMAL(10,2)
+    );
 
-# Demonstrate simple date-based filtering and aggregation
+    INSERT INTO regional_sales VALUES
+        ('North', 'Laptop', 50000.00),
+        ('South', 'Smartphone', 35000.00),
+        ('East', 'Tablet', 25000.00),
+        ('West', 'Laptop', 45000.00)
+''');
+
+# Analyze sales by region with ranking
 result = conn.execute('''
-    SELECT date, SUM(amount) as total_sales
-    FROM sales
-    WHERE date >= '2023-01-02'
-    GROUP BY date
+    SELECT 
+        region, 
+        product, 
+        sales_amount,
+        RANK() OVER (PARTITION BY region ORDER BY sales_amount DESC) as sales_rank
+    FROM regional_sales
 ''').fetchall()
 
 for row in result:
