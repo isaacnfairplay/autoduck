@@ -1,41 +1,21 @@
-# Generated: 2025-03-19 10:39:12.391921
-# Result: [('Science Fiction', 4.75, 1), ('Dystopian', 4.6, 1)]
+# Generated: 2025-03-19 10:40:08.486712
+# Result: [(datetime.date(2024, 1, 1),), (datetime.date(2024, 2, 1),), (datetime.date(2024, 3, 1),), (datetime.date(2024, 4, 1),), (datetime.date(2024, 5, 1),), (datetime.date(2024, 6, 1),), (datetime.date(2024, 7, 1),), (datetime.date(2024, 8, 1),), (datetime.date(2024, 9, 1),), (datetime.date(2024, 10, 1),), (datetime.date(2024, 11, 1),), (datetime.date(2024, 12, 1),), (datetime.date(2025, 1, 1),)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a books table with complex schema
-conn.execute('''
-    CREATE TABLE books (
-        id INTEGER PRIMARY KEY,
-        title VARCHAR,
-        author VARCHAR,
-        publication_year INTEGER,
-        genre VARCHAR,
-        rating DECIMAL(3,2)
-    );
-''')
+# Generate monthly fiscal date series for 2024 with start and end bounds
+result = conn.execute("""
+WITH RECURSIVE date_series(fiscal_month) AS (
+    SELECT DATE '2024-01-01'
+    UNION ALL
+    SELECT fiscal_month + INTERVAL 1 MONTH
+    FROM date_series
+    WHERE fiscal_month < DATE '2024-12-31'
+)
+SELECT fiscal_month
+FROM date_series
+""").fetchall()
 
-# Insert sample book data
-conn.executemany('INSERT INTO books VALUES (?, ?, ?, ?, ?, ?)', [
-    (1, 'Dune', 'Frank Herbert', 1965, 'Science Fiction', 4.75),
-    (2, '1984', 'George Orwell', 1949, 'Dystopian', 4.60),
-    (3, 'The Hobbit', 'J.R.R. Tolkien', 1937, 'Fantasy', 4.80)
-])
-
-# Demonstrate grouping and filtering with complex conditions
-result = conn.execute('''
-    SELECT 
-        genre, 
-        AVG(rating) as avg_rating,
-        COUNT(*) as book_count
-    FROM books
-    WHERE publication_year > 1940
-    GROUP BY genre
-    HAVING AVG(rating) > 4.5
-    ORDER BY avg_rating DESC
-''').fetchall()
-
-for row in result:
-    print(row)
+print([str(date[0]) for date in result])
