@@ -1,18 +1,33 @@
-# Generated: 2025-03-19 19:46:16.250625
-# Result: [(1, 1), (2, 2), (3, 6), (4, 24), (5, 120)]
+# Generated: 2025-03-19 19:47:10.629099
+# Result: [('Shirt', 75), ('Pants', 30)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create recursive CTE to simulate factorial calculation
-result = conn.execute('''
-WITH RECURSIVE factorial(n, fact) AS (
-    SELECT 1, 1
-    UNION ALL
-    SELECT n + 1, (n + 1) * fact FROM factorial WHERE n < 5
+# Create sales table with clothing category
+conn.execute('''
+CREATE TABLE clothing_sales (
+    category VARCHAR,
+    product_name VARCHAR,
+    sales_quantity INT
+);
+
+INSERT INTO clothing_sales VALUES
+('Clothing', 'Shirt', 50),
+('Clothing', 'Pants', 30),
+('Clothing', 'Shirt', 25);
+'''
 )
-SELECT * FROM factorial
+
+# Group and aggregate sales by clothing type
+result = conn.execute('''
+SELECT 
+    product_name, 
+    SUM(sales_quantity) as total_sales
+FROM clothing_sales
+WHERE category = 'Clothing'
+GROUP BY product_name
 ''').fetchall()
 
 print(result)
