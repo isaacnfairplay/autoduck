@@ -1,11 +1,13 @@
-# Generated: 2025-03-19 13:18:26.794191
-# Result: [([32.0, 50.0, 68.0, 86.0],)]
+# Generated: 2025-03-19 13:19:19.276551
+# Result: [1, 4, 9, 16, 25]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Convert temperatures from Celsius to Fahrenheit in an array
-result = conn.execute('SELECT array_transform([0, 10, 20, 30], x -> x * 9/5 + 32) as fahrenheit_temps').fetchall()
+# Create a list and transform it using array_transform
+result = conn.execute("""
+    SELECT array_transform([1, 2, 3, 4, 5], x -> x * x) as squared_list
+""").fetchone()[0]
 
-print(result)
+print(result)  # Will output [1, 4, 9, 16, 25]
