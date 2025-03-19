@@ -1,33 +1,33 @@
-# Generated: 2025-03-19 17:54:46.954422
-# Result: <duckdb.duckdb.DuckDBPyConnection object at 0x00000147DFA771F0>
+# Generated: 2025-03-19 17:56:29.301046
+# Result: [('Tablet', 'A', 75, 1), ('Laptop', 'A', 50, 2), ('Headphones', 'B', 200, 1), ('Smartphone', 'B', 100, 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a table with geographic sales data
-conn.execute('''CREATE TABLE regional_sales (
-    region VARCHAR,
-    product VARCHAR,
-    sales_amount DECIMAL(10,2)
+# Create and populate table with product inventory
+conn.execute('''CREATE TABLE inventory (
+    product_id INTEGER,
+    product_name VARCHAR,
+    quantity INTEGER,
+    warehouse VARCHAR
 )''')
 
-# Insert sample sales data
-conn.executemany('INSERT INTO regional_sales VALUES (?, ?, ?)', [
-    ('North', 'Laptop', 50000.00),
-    ('North', 'Tablet', 25000.50),
-    ('South', 'Laptop', 45000.25),
-    ('South', 'Smartphone', 60000.75)
+conn.executemany('INSERT INTO inventory VALUES (?, ?, ?, ?)', [
+    (1, 'Laptop', 50, 'A'),
+    (2, 'Smartphone', 100, 'B'),
+    (3, 'Tablet', 75, 'A'),
+    (4, 'Headphones', 200, 'B')
 ])
 
-# Calculate rolling average sales per region using window function
+# Demonstrate complex window function ranking warehouse inventory
 result = conn.execute('''SELECT 
-    region, 
-    product, 
-    sales_amount,
-    AVG(sales_amount) OVER (PARTITION BY region ORDER BY sales_amount) as region_rolling_avg
-FROM regional_sales
-ORDER BY region, sales_amount''')
+    product_name, 
+    warehouse, 
+    quantity,
+    DENSE_RANK() OVER (PARTITION BY warehouse ORDER BY quantity DESC) as inventory_rank
+FROM inventory
+ORDER BY warehouse, inventory_rank''').fetchall()
 
-for row in result.fetchall():
+for row in result:
     print(row)
