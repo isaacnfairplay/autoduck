@@ -1,38 +1,30 @@
-# Generated: 2025-03-19 17:35:08.730216
+# Generated: 2025-03-19 17:36:01.129064
 # Result: [([1, 4, 9, 16, 25],)]
 # Valid: True
 import duckdb
 
-# Demonstrating hierarchical data processing with recursive CTEs
 conn = duckdb.connect(':memory:')
 
-# Create an employee hierarchy table
+# Create product sales tracking table
 conn.sql("""
-CREATE TABLE employees (
-    id INTEGER,
-    name VARCHAR,
-    manager_id INTEGER
+CREATE TABLE product_sales (
+    product_id INTEGER,
+    sale_date DATE,
+    quantity INTEGER,
+    price DECIMAL(10,2)
 );
 
-INSERT INTO employees VALUES
-(1, 'Alice', NULL),
-(2, 'Bob', 1),
-(3, 'Charlie', 1),
-(4, 'David', 2),
-(5, 'Eve', 3);
+INSERT INTO product_sales VALUES
+(1, '2023-01-15', 5, 49.99),
+(1, '2023-02-20', 3, 49.99),
+(2, '2023-01-10', 7, 29.50);
 
--- Recursive CTE to find all subordinates
-WITH RECURSIVE subordinate_chain AS (
-    SELECT id, name, manager_id, 0 AS depth
-    FROM employees
-    WHERE name = 'Alice'
-
-    UNION ALL
-
-    SELECT e.id, e.name, e.manager_id, sc.depth + 1
-    FROM employees e
-    JOIN subordinate_chain sc ON e.manager_id = sc.id
-)
-SELECT name, depth
-FROM subordinate_chain
+-- Compute cumulative sales and rolling average per product
+SELECT 
+    product_id, 
+    sale_date,
+    quantity,
+    SUM(quantity) OVER (PARTITION BY product_id ORDER BY sale_date) AS cumulative_sales,
+    AVG(price) OVER (PARTITION BY product_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS rolling_avg_price
+FROM product_sales
 """).show()
