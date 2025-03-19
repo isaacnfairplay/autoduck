@@ -1,33 +1,33 @@
-# Generated: 2025-03-19 08:33:12.903506
+# Generated: 2025-03-19 08:34:07.170212
 # Result: [('Electronics', 'Smartphone', 800, 75, 1, 75), ('Electronics', 'Laptop', 1200, 50, 2, 125), ('Clothing', 'Shirt', 50, 100, 1, 100), ('Clothing', 'Jeans', 80, 60, 2, 160)]
 # Valid: True
+# Variable results: Type: list
+# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample sales data
-conn.execute('''
-CREATE TABLE product_sales AS
-SELECT 'Electronics' as category, 'Laptop' as product, 1200 as price, 50 as quantity
-UNION ALL
-SELECT 'Electronics', 'Smartphone', 800, 75
-UNION ALL
-SELECT 'Clothing', 'Shirt', 50, 100
-UNION ALL
-SELECT 'Clothing', 'Jeans', 80, 60
-''')
+# Create sample sales data with timestamps
+conn.sql("""
+CREATE TABLE sales AS
+SELECT * FROM (
+    VALUES
+    ('2023-01-15', 'Product A', 100),
+    ('2023-01-16', 'Product B', 150),
+    ('2023-01-17', 'Product A', 200),
+    ('2023-01-18', 'Product C', 250)
+) t(sale_date, product, amount)
+""")
 
-# Calculate product ranking and cumulative sales by category
-result = conn.execute('''
+# Demonstrate cumulative sum window function
+results = conn.sql("""
 SELECT 
-    category, 
+    sale_date, 
     product, 
-    price, 
-    quantity,
-    RANK() OVER (PARTITION BY category ORDER BY quantity DESC) as product_rank,
-    SUM(quantity) OVER (PARTITION BY category ORDER BY price) as cumulative_category_sales
-FROM product_sales
-''').fetchall()
+    amount,
+    SUM(amount) OVER (PARTITION BY product ORDER BY sale_date) as cumulative_product_sales
+FROM sales
+""").fetchall()
 
-for row in result:
+for row in results:
     print(row)
