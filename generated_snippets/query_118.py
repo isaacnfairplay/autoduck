@@ -1,32 +1,36 @@
-# Generated: 2025-03-19 10:00:02.118946
-# Result: [('2023-01-01', Decimal('500.50'), 500.5), ('2023-01-02', Decimal('250.75'), 375.625), ('2023-01-03', Decimal('1200.00'), 650.4166666666666), ('2023-01-04', Decimal('750.25'), 733.6666666666666)]
+# Generated: 2025-03-19 10:01:57.662481
+# Result: [('Engineering', 'Alice', 75000), ('Engineering', 'Bob', 65000), ('Sales', 'Charlie', 80000)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create time series sales data
+# Create tables for lateral join example
 conn.execute('''
-CREATE TABLE daily_sales AS
-SELECT * FROM (
-    VALUES
-    ('2023-01-01', 500.50),
-    ('2023-01-02', 250.75),
-    ('2023-01-03', 1200.00),
-    ('2023-01-04', 750.25)
-) t(sale_date, amount)
-''')
+CREATE TABLE departments (dept_id INT, dept_name VARCHAR);
+CREATE TABLE employees (emp_id INT, name VARCHAR, salary INT, dept_id INT);
 
-# Calculate 3-day moving average of sales
+INSERT INTO departments VALUES (1, 'Engineering'), (2, 'Sales');
+INSERT INTO employees VALUES 
+(101, 'Alice', 75000, 1),
+(102, 'Bob', 65000, 1),
+(103, 'Charlie', 80000, 2);
+''');
+
+# Perform lateral join to get top 2 earners per department
 result = conn.execute('''
 SELECT 
-    sale_date, 
-    amount,
-    AVG(amount) OVER (
-        ORDER BY sale_date
-        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
-    ) as rolling_3day_avg
-FROM daily_sales
+    d.dept_name, 
+    e.name, 
+    e.salary
+FROM departments d,
+    LATERAL (
+        SELECT name, salary
+        FROM employees
+        WHERE dept_id = d.dept_id
+        ORDER BY salary DESC
+        LIMIT 2
+    ) e
 ''').fetchall()
 
 for row in result:
