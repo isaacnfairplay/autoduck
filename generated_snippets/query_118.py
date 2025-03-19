@@ -1,28 +1,28 @@
-# Generated: 2025-03-19 16:47:03.275014
-# Result: [(2, datetime.date(2023, 5, 2), Decimal('275.25'), Decimal('275.25'), 1), (1, datetime.date(2023, 5, 1), Decimal('150.50'), Decimal('150.50'), 2), (1, datetime.date(2023, 5, 3), Decimal('89.99'), Decimal('240.49'), 3)]
+# Generated: 2025-03-19 16:47:54.994726
+# Result: [('West', 'Laptop', Decimal('6200.00'), 1, 1), ('North', 'Laptop', Decimal('5000.50'), 1, 2), ('East', 'Phone', Decimal('4500.25'), 1, 3), ('South', 'Tablet', Decimal('3200.75'), 1, 4)]
 # Valid: True
 import duckdb
 
-# Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create and populate customer order table
-conn.execute('CREATE TABLE orders (customer_id INT, order_date DATE, total_amount DECIMAL(10,2))')
-conn.executemany('INSERT INTO orders VALUES (?, ?, ?)', [
-    (1, '2023-05-01', 150.50),
-    (2, '2023-05-02', 275.25),
-    (1, '2023-05-03', 89.99)
+# Create geographical sales data
+conn.execute('CREATE TABLE regional_sales (region VARCHAR, product VARCHAR, sales_amount DECIMAL(10,2))')
+conn.executemany('INSERT INTO regional_sales VALUES (?, ?, ?)', [
+    ('North', 'Laptop', 5000.50),
+    ('South', 'Tablet', 3200.75),
+    ('East', 'Phone', 4500.25),
+    ('West', 'Laptop', 6200.00)
 ])
 
-# Analyze orders using window functions
+# Use window function and ranking to analyze regional sales performance
 result = conn.execute('''
     SELECT 
-        customer_id, 
-        order_date, 
-        total_amount,
-        SUM(total_amount) OVER (PARTITION BY customer_id ORDER BY order_date) as cumulative_spend,
-        RANK() OVER (ORDER BY total_amount DESC) as order_rank
-    FROM orders
+        region, 
+        product, 
+        sales_amount,
+        RANK() OVER (PARTITION BY region ORDER BY sales_amount DESC) as regional_rank,
+        DENSE_RANK() OVER (ORDER BY sales_amount DESC) as overall_rank
+    FROM regional_sales
 ''').fetchall()
 
 print(result)
