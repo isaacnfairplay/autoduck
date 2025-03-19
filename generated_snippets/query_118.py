@@ -1,13 +1,13 @@
-# Generated: 2025-03-19 14:19:01.345385
-# Result: [Decimal('90.0'), Decimal('180.0'), Decimal('270.0')]
+# Generated: 2025-03-19 14:19:56.177541
+# Result: [([1, 4, 9, 16, 25],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Transform fruit prices by applying percentage discount
+# Create an array and transform each element
 result = conn.execute('''
-    SELECT array_transform([100, 200, 300], x -> x * 0.9) AS discounted_prices
-''').fetchone()[0]
+    SELECT array_transform([1, 2, 3, 4, 5], x -> x * x) AS squared_array
+''').fetchall()
 
-print(result)  # Output: [90.0, 180.0, 270.0]
+print(result[0][0])  # Output: [1, 4, 9, 16, 25]
