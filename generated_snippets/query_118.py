@@ -1,29 +1,29 @@
-# Generated: 2025-03-19 12:27:28.363787
-# Result: [('Phone', Decimal('800.00'))]
+# Generated: 2025-03-19 12:28:22.092236
+# Result: [('Shirt', Decimal('50.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create electronics table
+# Create clothing products table
 conn.execute('''
-CREATE TABLE electronics (
+CREATE TABLE clothing (
     category VARCHAR,
     product VARCHAR,
     price DECIMAL(10,2)
 );
 
-INSERT INTO electronics VALUES
-    ('Electronics', 'Phone', 800),
-    ('Electronics', 'Laptop', 1200),
-    ('Electronics', 'Tablet', 500);
+INSERT INTO clothing VALUES
+    ('Clothing', 'Shirt', 50),
+    ('Clothing', 'Pants', 75),
+    ('Clothing', 'Jacket', 120);
 ''')
 
-# Filter products matching price criteria
+# Query clothing items matching task criteria
 result = conn.execute('''
 SELECT product, price
-FROM electronics
-WHERE category = 'Electronics' AND price = 800
+FROM clothing
+WHERE category = 'Clothing' AND product = 'Shirt'
 ''').fetchall()
 
 for row in result:
