@@ -1,15 +1,14 @@
-# Generated: 2025-03-19 18:05:47.546333
-# Result: [('New York', -74.006, 40.7128)]
+# Generated: 2025-03-19 18:07:28.037667
+# Result: [('Electronics', [[1, 2, 3], [6, 7]]), ('Clothing', [[4, 5]])]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Demonstrate geospatial function with PostGIS-like point manipulation
-conn.execute('INSTALL spatial; LOAD spatial')
-conn.execute('CREATE TABLE locations (name STRING, point GEOMETRY)')
-conn.execute("INSERT INTO locations VALUES ('New York', 'POINT(-74.006 40.7128)')")
+# Create table and demonstrate array aggregation
+conn.execute('CREATE TABLE products (category STRING, tags INTEGER[])')
+conn.execute("INSERT INTO products VALUES ('Electronics', [1, 2, 3]), ('Clothing', [4, 5]), ('Electronics', [6, 7])")
 
-result = conn.execute("SELECT name, ST_X(point) as longitude, ST_Y(point) as latitude FROM locations").fetchall()
+result = conn.execute("SELECT category, array_agg(tags) AS all_tags FROM products GROUP BY category").fetchall()
 
 print(result)
