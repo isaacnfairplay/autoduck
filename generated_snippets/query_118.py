@@ -1,35 +1,25 @@
-# Generated: 2025-03-19 19:33:25.955709
-# Result: [('Alice', 'Sales', Decimal('55000.00'), 1), ('Charlie', 'Sales', Decimal('52000.00'), 2), ('David', 'Engineering', Decimal('75000.00'), 1), ('Bob', 'Marketing', Decimal('60000.00'), 1), ('Eve', 'Marketing', Decimal('58000.00'), 2)]
+# Generated: 2025-03-19 19:35:08.282323
+# Result: [('2023-01-01', Decimal('1200.50'), 1200.5), ('2023-01-02', Decimal('1350.75'), 1275.625), ('2023-01-03', Decimal('1100.25'), 1217.1666666666667)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample employee data with departments
+# Create time series sales data
 conn.execute('''
-CREATE TABLE employees (
-    id INT,
-    name VARCHAR,
-    department VARCHAR,
-    salary DECIMAL(10,2)
-);
-
-INSERT INTO employees VALUES
-(1, 'Alice', 'Sales', 55000),
-(2, 'Bob', 'Marketing', 60000),
-(3, 'Charlie', 'Sales', 52000),
-(4, 'David', 'Engineering', 75000),
-(5, 'Eve', 'Marketing', 58000);
+CREATE TABLE daily_sales AS
+SELECT '2023-01-01' as sales_date, 1200.50 as revenue
+UNION ALL SELECT '2023-01-02', 1350.75
+UNION ALL SELECT '2023-01-03', 1100.25
 ''')
 
-# Use window function to calculate department salary rankings
+# Calculate 3-day moving average of revenue
 result = conn.execute('''
 SELECT 
-    name, 
-    department, 
-    salary,
-    DENSE_RANK() OVER (PARTITION BY department ORDER BY salary DESC) as dept_salary_rank
-FROM employees
+    sales_date, 
+    revenue,
+    AVG(revenue) OVER (ORDER BY sales_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as moving_avg
+FROM daily_sales
 ''').fetchall()
 
 print(result)
