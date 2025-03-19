@@ -1,28 +1,28 @@
-# Generated: 2025-03-19 15:53:30.570334
-# Result: [('Bob', 35, 3)]
+# Generated: 2025-03-19 15:54:22.391491
+# Result: [('Chicago', '2023-01-01', 25, 25.0), ('Chicago', '2023-01-02', 28, 26.5), ('New York', '2023-01-01', 32, 32.0), ('New York', '2023-01-02', 35, 33.5)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and query a people table with nested JSON data
-conn.sql('''
-    CREATE TABLE people AS 
-    SELECT * FROM (
-        VALUES 
-        ('Alice', {'age': 30, 'skills': ['Python', 'SQL']}),
-        ('Bob', {'age': 35, 'skills': ['Java', 'C++', 'DuckDB']})
-    ) AS t(name, details)
-''')
+# Create a sample table of temperatures
+conn.execute('''CREATE TABLE temperatures AS
+SELECT * FROM (VALUES
+    ('New York', '2023-01-01', 32),
+    ('New York', '2023-01-02', 35),
+    ('Chicago', '2023-01-01', 25),
+    ('Chicago', '2023-01-02', 28)
+) AS t(city, date, temperature)''')
 
-# Extract nested JSON fields and filter
-result = conn.sql('''
-    SELECT 
-        name, 
-        details['age'] as age, 
-        ARRAY_LENGTH(details['skills']) as skill_count
-    FROM people
-    WHERE 35 = details['age']
+# Use window function to calculate moving average
+result = conn.execute('''
+SELECT 
+    city, 
+    date, 
+    temperature,
+    AVG(temperature) OVER (PARTITION BY city ORDER BY date ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg
+FROM temperatures
 ''').fetchall()
 
-print(result)
+for row in result:
+    print(f"City: {row[0]}, Date: {row[1]}, Temperature: {row[2]}, Moving Average: {row[3]:.2f}")
