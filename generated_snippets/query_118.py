@@ -1,40 +1,36 @@
-# Generated: 2025-03-19 09:32:09.792515
-# Result: [(1, 'Laptop', 'Electronics', 'Computers', 1), (2, 'Smartphone', 'Electronics', 'Mobile', 1), (3, 'Tablet', 'Electronics', 'Computers', 1), (4, 'Running Shoes', 'Sportswear', 'Footwear', 1)]
+# Generated: 2025-03-19 09:33:03.260841
+# Result: [('GOOGL', datetime.date(2023, 1, 1), Decimal('100.25'), 100.25, Decimal('0.00')), ('GOOGL', datetime.date(2023, 1, 2), Decimal('102.50'), 101.375, Decimal('2.25')), ('GOOGL', datetime.date(2023, 1, 3), Decimal('101.75'), 102.125, Decimal('1.50')), ('AAPL', datetime.date(2023, 1, 1), Decimal('150.50'), 150.5, Decimal('0.00')), ('AAPL', datetime.date(2023, 1, 2), Decimal('152.25'), 151.375, Decimal('1.75')), ('AAPL', datetime.date(2023, 1, 3), Decimal('149.75'), 151.0, Decimal('-0.75'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sample products table with hierarchical categories
+# Create time series data with complex window function
 conn.sql("""
-CREATE TABLE products (
-    product_id INTEGER,
-    name VARCHAR,
-    category VARCHAR,
-    subcategory VARCHAR,
+CREATE TABLE stock_prices (
+    date DATE,
+    stock VARCHAR,
     price DECIMAL(10,2)
 );
 
-INSERT INTO products VALUES
-    (1, 'Laptop', 'Electronics', 'Computers', 1200.00),
-    (2, 'Smartphone', 'Electronics', 'Mobile', 800.00),
-    (3, 'Tablet', 'Electronics', 'Computers', 500.00),
-    (4, 'Running Shoes', 'Sportswear', 'Footwear', 150.00)
+INSERT INTO stock_prices VALUES
+    ('2023-01-01', 'AAPL', 150.50),
+    ('2023-01-02', 'AAPL', 152.25),
+    ('2023-01-03', 'AAPL', 149.75),
+    ('2023-01-01', 'GOOGL', 100.25),
+    ('2023-01-02', 'GOOGL', 102.50),
+    ('2023-01-03', 'GOOGL', 101.75)
 """)
 
-# Use recursive CTE to generate product hierarchies
+# Calculate rolling 2-day average and total price change
 result = conn.sql("""
-WITH RECURSIVE product_hierarchy AS (
-    SELECT product_id, name, category, subcategory, 1 as depth
-    FROM products
-    
-    UNION ALL
-    
-    SELECT p.product_id, p.name, p.category, p.subcategory, ph.depth + 1
-    FROM products p, product_hierarchy ph
-    WHERE p.category = ph.subcategory
-)
-SELECT * FROM product_hierarchy
+SELECT 
+    stock, 
+    date, 
+    price,
+    AVG(price) OVER (PARTITION BY stock ORDER BY date ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg,
+    price - FIRST_VALUE(price) OVER (PARTITION BY stock ORDER BY date) as price_change
+FROM stock_prices
 """).fetchall()
 
 print(result)
