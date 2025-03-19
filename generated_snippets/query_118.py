@@ -1,36 +1,35 @@
-# Generated: 2025-03-19 11:38:59.765644
-# Result: [(1, 'Calculus', 4), (4, 'Statistics', 3)]
+# Generated: 2025-03-19 11:39:53.712269
+# Result: [('Clothing', 'Jeans', Decimal('75.50'), 1), ('Clothing', 'Shirt', Decimal('50.00'), 2), ('Electronics', 'Laptop', Decimal('1200.00'), 1), ('Electronics', 'Smartphone', Decimal('800.50'), 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample courses table
+# Create and analyze product categories
 conn.execute('''
-CREATE TABLE courses (
-    course_id INTEGER,
-    name VARCHAR,
-    department VARCHAR,
-    credits INTEGER
+CREATE TABLE product_categories (
+    category VARCHAR,
+    product VARCHAR,
+    price DECIMAL(10,2)
 );
 
-INSERT INTO courses VALUES
-(1, 'Calculus', 'Mathematics', 4),
-(2, 'Computer Science', 'CS', 3),
-(3, 'Physics', 'Science', 4),
-(4, 'Statistics', 'Mathematics', 3);
+INSERT INTO product_categories VALUES
+('Electronics', 'Laptop', 1200.00),
+('Electronics', 'Smartphone', 800.50),
+('Clothing', 'Shirt', 50.00),
+('Clothing', 'Jeans', 75.50);
 ''')
 
-# Select courses by department with advanced filtering
+# Rank products by price within each category
 result = conn.execute('''
-SELECT 
-    course_id, 
-    name, 
-    credits
-FROM courses
-WHERE department = 'Mathematics'
-ORDER BY credits DESC
+SELECT
+    category,
+    product,
+    price,
+    RANK() OVER (PARTITION BY category ORDER BY price DESC) as price_rank
+FROM product_categories
+ORDER BY category, price_rank
 ''').fetchall()
 
 for row in result:
-    print(f"Course {row[0]}: {row[1]} ({row[2]} credits)")
+    print(f"{row[1]} ({row[0]}): ${row[2]} - Rank: {row[3]}")
