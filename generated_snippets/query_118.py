@@ -1,35 +1,34 @@
-# Generated: 2025-03-19 12:17:50.125377
-# Result: [(1, datetime.date(2023, 1, 15), 5, Decimal('50.00'), Decimal('250.00')), (1, datetime.date(2023, 2, 20), 3, Decimal('52.50'), Decimal('407.50')), (2, datetime.date(2023, 1, 10), 7, Decimal('25.00'), Decimal('175.00')), (2, datetime.date(2023, 3, 5), 4, Decimal('27.50'), Decimal('285.00'))]
+# Generated: 2025-03-19 12:19:40.223717
+# Result: [(1, datetime.datetime(2023, 6, 1, 10, 0), Decimal('22.50'), 22.5), (1, datetime.datetime(2023, 6, 1, 11, 0), Decimal('23.10'), 22.8), (2, datetime.datetime(2023, 6, 1, 10, 0), Decimal('21.80'), 21.8), (2, datetime.datetime(2023, 6, 1, 11, 0), Decimal('22.30'), 22.05)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create product sales table
-conn.execute('''
-CREATE TABLE product_sales (
-    product_id INT,
-    sale_date DATE,
-    quantity INT,
-    price DECIMAL(10,2)
-);
+# Create and populate a time series sensor data table
+conn.execute('''CREATE TABLE sensor_readings (
+    sensor_id INT,
+    timestamp TIMESTAMP,
+    temperature DECIMAL(5,2),
+    humidity DECIMAL(5,2)
+);''')
 
-INSERT INTO product_sales VALUES
-    (1, '2023-01-15', 5, 50.00),
-    (1, '2023-02-20', 3, 52.50),
-    (2, '2023-01-10', 7, 25.00),
-    (2, '2023-03-05', 4, 27.50);
+conn.execute('''
+INSERT INTO sensor_readings VALUES
+    (1, '2023-06-01 10:00:00', 22.5, 45.3),
+    (1, '2023-06-01 11:00:00', 23.1, 46.2),
+    (2, '2023-06-01 10:00:00', 21.8, 44.7),
+    (2, '2023-06-01 11:00:00', 22.3, 45.5)
 ''')
 
-# Demonstrate window function for cumulative sales tracking
+# Perform time-based moving average with window function
 result = conn.execute('''
-SELECT 
-    product_id, 
-    sale_date, 
-    quantity, 
-    price,
-    SUM(quantity * price) OVER (PARTITION BY product_id ORDER BY sale_date) as cumulative_revenue
-FROM product_sales
+SELECT
+    sensor_id,
+    timestamp,
+    temperature,
+    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg_temp
+FROM sensor_readings
 ''').fetchall()
 
 for row in result:
