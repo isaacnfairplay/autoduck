@@ -1,37 +1,36 @@
-# Generated: 2025-03-19 13:49:27.886761
-# Result: [('South', 'Smartphone', Decimal('7500.75'), 1), ('West', 'Laptop', Decimal('6100.00'), 1), ('North', 'Laptop', Decimal('5000.50'), 1), ('North', 'Smartphone', Decimal('4800.90'), 2), ('East', 'Tablet', Decimal('3200.25'), 1)]
+# Generated: 2025-03-19 13:50:20.114064
+# Result: [(1, datetime.datetime(2023, 5, 1, 10, 0), 22.5, 22.5), (1, datetime.datetime(2023, 5, 1, 11, 0), 23.100000381469727, 22.800000190734863), (2, datetime.datetime(2023, 5, 1, 10, 0), 21.700000762939453, 21.700000762939453), (2, datetime.datetime(2023, 5, 1, 11, 0), 22.299999237060547, 22.0)]
 # Valid: True
 import duckdb
 
 # Connect to in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create table with geographic sales data
+# Create table with sensor temperature data
 conn.execute('''
-CREATE TABLE sales (
-    region VARCHAR,
-    product VARCHAR,
-    revenue DECIMAL(10,2)
+CREATE TABLE sensor_readings (
+    sensor_id INTEGER,
+    timestamp TIMESTAMP,
+    temperature FLOAT
 )''')
 
-# Insert sample sales data
+# Insert sample sensor readings
 conn.execute('''
-INSERT INTO sales VALUES
-    ('North', 'Laptop', 5000.50),
-    ('South', 'Smartphone', 7500.75),
-    ('East', 'Tablet', 3200.25),
-    ('West', 'Laptop', 6100.00),
-    ('North', 'Smartphone', 4800.90)
+INSERT INTO sensor_readings VALUES
+    (1, '2023-05-01 10:00:00', 22.5),
+    (1, '2023-05-01 11:00:00', 23.1),
+    (2, '2023-05-01 10:00:00', 21.7),
+    (2, '2023-05-01 11:00:00', 22.3)
 ''')
 
-# Perform window function to rank products by revenue within each region
+# Calculate moving average temperature for each sensor
 result = conn.execute('''
 SELECT 
-    region, 
-    product, 
-    revenue,
-    RANK() OVER (PARTITION BY region ORDER BY revenue DESC) as revenue_rank
-FROM sales
+    sensor_id, 
+    timestamp, 
+    temperature,
+    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg
+FROM sensor_readings
 ''').fetchall()
 
 print(result)
