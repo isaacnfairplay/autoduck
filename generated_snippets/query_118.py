@@ -1,29 +1,25 @@
-# Generated: 2025-03-19 08:49:45.718529
-# Result: [('Laptop', 'East', 50, 1, 1), ('Desktop', 'West', 40, 2, 2), ('Phone', 'West', 75, 1, 3), ('Tablet', 'East', 30, 2, 4)]
+# Generated: 2025-03-19 08:50:37.326211
+# Result: [('Laptop', Decimal('1200.50'), 'Electronics'), ('Phone', Decimal('800.25'), 'Electronics')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate table for multi-warehouse inventory tracking
-conn.execute('CREATE TABLE warehouse_inventory (product TEXT, warehouse TEXT, quantity INT, price DECIMAL(10,2))')
-conn.executemany('INSERT INTO warehouse_inventory VALUES (?, ?, ?, ?)', [
-    ('Laptop', 'East', 50, 1200.50),
-    ('Phone', 'West', 75, 800.25),
-    ('Tablet', 'East', 30, 500.75),
-    ('Desktop', 'West', 40, 1000.00)
+# Create table with product sales data
+conn.execute('CREATE TABLE products (id INT, name TEXT, price DECIMAL(10,2), category TEXT)')
+conn.executemany('INSERT INTO products VALUES (?, ?, ?, ?)', [
+    (1, 'Laptop', 1200.50, 'Electronics'),
+    (2, 'Phone', 800.25, 'Electronics'),
+    (3, 'Book', 25.99, 'Literature')
 ])
 
-# Demonstrate complex window function with multiple window specifications
+# Perform SELECT with multiple conditions and ordering
 result = conn.execute('''
-    SELECT 
-        product, 
-        warehouse, 
-        quantity,
-        RANK() OVER (PARTITION BY warehouse ORDER BY quantity DESC) as quantity_rank,
-        DENSE_RANK() OVER (ORDER BY price DESC) as price_dense_rank
-    FROM warehouse_inventory
+    SELECT name, price, category 
+    FROM products 
+    WHERE category = 'Electronics' AND price > 700 
+    ORDER BY price DESC
 ''').fetchall()
 
 for row in result:
-    print(f"Product: {row[0]}, Warehouse: {row[1]}, Quantity: {row[2]}, Quantity Rank: {row[3]}, Price Dense Rank: {row[4]}")
+    print(f'Product: {row[0]}, Price: ${row[1]}, Category: {row[2]}')
