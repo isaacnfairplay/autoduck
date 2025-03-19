@@ -1,35 +1,31 @@
-# Generated: 2025-03-19 10:21:49.888263
-# Result: [('Laptop', 'Electronics', 50, 1, 10.0), ('Smartphone', 'Electronics', 30, 2, -10.0), ('Desk Chair', 'Furniture', 25, 1, 0.0)]
+# Generated: 2025-03-19 10:22:42.685667
+# Result: [('Smartphone', datetime.date(2023, 7, 2), Decimal('8992.50'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create product inventory table with complex window function analysis
+# Create product sales table
 conn.execute('''
-    CREATE TABLE product_inventory (
+    CREATE TABLE product_sales (
         product_id INTEGER,
         product_name VARCHAR,
-        category VARCHAR,
-        stock_quantity INTEGER,
-        reorder_point INTEGER
+        sale_date DATE,
+        quantity INTEGER,
+        price DECIMAL(10,2)
     );
 
-    INSERT INTO product_inventory VALUES
-        (1, 'Laptop', 'Electronics', 50, 20),
-        (2, 'Smartphone', 'Electronics', 30, 15),
-        (3, 'Desk Chair', 'Furniture', 25, 10)
+    INSERT INTO product_sales VALUES
+        (1, 'Laptop', '2023-07-01', 10, 999.99),
+        (2, 'Smartphone', '2023-07-02', 15, 599.50)
 ''');
 
-# Analyze inventory with advanced window functions
+# Perform simple SELECT with multiple conditions
 result = conn.execute('''
-    SELECT 
-        product_name,
-        category,
-        stock_quantity,
-        DENSE_RANK() OVER (PARTITION BY category ORDER BY stock_quantity DESC) as stock_rank,
-        stock_quantity - AVG(stock_quantity) OVER (PARTITION BY category) as stock_deviation
-    FROM product_inventory
+    SELECT product_name, sale_date, quantity * price as total_revenue
+    FROM product_sales
+    WHERE quantity > 10 AND price > 500
+    ORDER BY total_revenue DESC
 ''').fetchall()
 
 for row in result:
