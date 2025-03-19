@@ -1,28 +1,35 @@
-# Generated: 2025-03-19 08:20:52.827382
-# Result: [('Laptop', Decimal('1200.50')), ('Smartphone', Decimal('800.25'))]
+# Generated: 2025-03-19 08:21:45.127000
+# Result: [('Electronics', 2, Decimal('2000.75'), 1000.375), ('Clothing', 1, Decimal('250.75'), 250.75)]
 # Valid: True
 import duckdb
 
+# Create in-memory database
 conn = duckdb.connect(':memory:')
 
+# Create product sales table with category focus
 conn.execute('''
-CREATE TABLE products (
-    product_id INT,
-    name VARCHAR,
-    price DECIMAL(10,2)
+CREATE TABLE product_sales (
+    category VARCHAR,
+    product VARCHAR,
+    sales_amount DECIMAL(10,2)
 );
 
-INSERT INTO products VALUES
-    (1, 'Laptop', 1200.50),
-    (2, 'Smartphone', 800.25),
-    (3, 'Tablet', 500.00);
+INSERT INTO product_sales VALUES
+    ('Electronics', 'Laptop', 1200.50),
+    ('Electronics', 'Smartphone', 800.25),
+    ('Clothing', 'Jacket', 250.75);
 ''')
 
+# Analyze sales by category
 result = conn.execute('''
-SELECT name, price
-FROM products
-WHERE price > 600
-ORDER BY price DESC
+SELECT 
+    category, 
+    COUNT(*) as product_count,
+    SUM(sales_amount) as total_category_sales,
+    AVG(sales_amount) as avg_category_sales
+FROM product_sales
+GROUP BY category
+ORDER BY total_category_sales DESC
 ''').fetchall()
 
 for row in result:
