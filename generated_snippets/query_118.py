@@ -1,32 +1,36 @@
-# Generated: 2025-03-19 10:05:32.601451
-# Result: [(datetime.date(2023, 1, 1), 'Widget', Decimal('100.000'), 100.0), (datetime.date(2023, 1, 2), 'Widget', Decimal('150.000'), 125.0), (datetime.date(2023, 1, 3), 'Widget', Decimal('200.000'), 150.0), (datetime.date(2023, 1, 4), 'Widget', Decimal('180.000'), 176.66666666666666)]
+# Generated: 2025-03-19 10:08:07.006150
+# Result: [('Sales', 55000.0, 1), ('Marketing', 59000.0, 2)]
 # Valid: True
 import duckdb
 
+# Connect to an in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create sales data with dates
+# Create a simple employees table
 conn.execute('''
-    CREATE TABLE sales (date DATE, product TEXT, amount DECIMAL);
-    INSERT INTO sales VALUES 
-        ('2023-01-01', 'Widget', 100),
-        ('2023-01-02', 'Widget', 150),
-        ('2023-01-03', 'Widget', 200),
-        ('2023-01-04', 'Widget', 180);
-''')
+    CREATE TABLE employees (
+        id INTEGER PRIMARY KEY,
+        name VARCHAR,
+        department VARCHAR,
+        salary DECIMAL(10,2)
+    );
 
-# Calculate 3-day rolling average of sales
+    INSERT INTO employees VALUES
+        (1, 'Alice', 'Sales', 55000),
+        (2, 'Bob', 'Marketing', 60000),
+        (3, 'Charlie', 'Sales', 52000),
+        (4, 'David', 'Marketing', 58000)
+''');
+
+# Demonstrate group aggregation with filtering
 result = conn.execute('''
     SELECT 
-        date, 
-        product, 
-        amount,
-        AVG(amount) OVER (
-            PARTITION BY product 
-            ORDER BY date 
-            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
-        ) AS rolling_avg
-    FROM sales
+        department, 
+        AVG(salary) as avg_salary,
+        COUNT(*) as employee_count
+    FROM employees
+    WHERE salary > 53000
+    GROUP BY department
 ''').fetchall()
 
 for row in result:
