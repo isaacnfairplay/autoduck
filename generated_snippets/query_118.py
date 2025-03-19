@@ -1,36 +1,34 @@
-# Generated: 2025-03-19 11:28:30.043811
-# Result: [('Laptop', Decimal('97000.25'), 48500.125), ('Smartphone', Decimal('65001.25'), 32500.625)]
+# Generated: 2025-03-19 11:29:21.626240
+# Result: [(2, 'Math', Decimal('78.20'), 0.0), (1, 'Math', Decimal('85.50'), 1.0), (2, 'Science', Decimal('88.70'), 0.0), (1, 'Science', Decimal('92.30'), 1.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create monthly sales data
+# Create a table tracking student grades
 conn.execute('''
-CREATE TABLE monthly_sales (
-    month VARCHAR,
-    product VARCHAR,
-    revenue DECIMAL(10,2)
+CREATE TABLE student_grades (
+    student_id INTEGER,
+    subject VARCHAR,
+    grade DECIMAL(5,2)
 );
 
-INSERT INTO monthly_sales VALUES
-('January', 'Laptop', 45000.00),
-('January', 'Smartphone', 30000.50),
-('February', 'Laptop', 52000.25),
-('February', 'Smartphone', 35000.75);
-'''
-)
+INSERT INTO student_grades VALUES
+(1, 'Math', 85.5),
+(1, 'Science', 92.3),
+(2, 'Math', 78.2),
+(2, 'Science', 88.7);
+''')
 
-# Calculate total revenue per product
+# Use window functions to calculate grade percentiles
 result = conn.execute('''
 SELECT 
-    product, 
-    SUM(revenue) as total_revenue,
-    AVG(revenue) as avg_monthly_revenue
-FROM monthly_sales
-GROUP BY product
-ORDER BY total_revenue DESC
+    student_id, 
+    subject, 
+    grade,
+    PERCENT_RANK() OVER (PARTITION BY subject ORDER BY grade) as percentile
+FROM student_grades
 ''').fetchall()
 
 for row in result:
-    print(f"{row[0]}: Total Revenue ${row[1]}, Avg Monthly ${row[2]:.2f}")
+    print(f"Student {row[0]} in {row[1]}: Grade {row[2]} (Percentile: {row[3]:.2%})")
