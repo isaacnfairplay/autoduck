@@ -1,28 +1,27 @@
-# Generated: 2025-03-19 08:48:01.362573
-# Result: [('Charlie', 'Sales', Decimal('95.70'), 0.0), ('Alice', 'Sales', Decimal('92.50'), 1.0), ('David', 'Marketing', Decimal('90.10'), 0.0), ('Bob', 'Marketing', Decimal('88.30'), 1.0)]
+# Generated: 2025-03-19 08:48:52.818981
+# Result: [('Electronics', Decimal('500.25'), Decimal('500.25')), ('Electronics', Decimal('1000.50'), Decimal('1500.75')), ('Clothing', Decimal('600.30'), Decimal('600.30')), ('Clothing', Decimal('750.75'), Decimal('1351.05'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate employee performance table
-conn.execute('CREATE TABLE employee_performance (employee TEXT, department TEXT, performance_score DECIMAL(5,2), bonus DECIMAL(10,2))')
-conn.executemany('INSERT INTO employee_performance VALUES (?, ?, ?, ?)', [
-    ('Alice', 'Sales', 92.5, 5000.00),
-    ('Bob', 'Marketing', 88.3, 4200.50),
-    ('Charlie', 'Sales', 95.7, 5500.25),
-    ('David', 'Marketing', 90.1, 4500.75)
+# Create sales table
+conn.execute('CREATE TABLE category_sales (category TEXT, sale_amount DECIMAL(10,2))')
+conn.executemany('INSERT INTO category_sales VALUES (?, ?)', [
+    ('Electronics', 1000.50),
+    ('Electronics', 500.25),
+    ('Clothing', 750.75),
+    ('Clothing', 600.30)
 ])
 
-# Calculate department performance ranking using PERCENT_RANK
+# Calculate running total per category using window function
 result = conn.execute('''
     SELECT 
-        employee, 
-        department, 
-        performance_score,
-        PERCENT_RANK() OVER (PARTITION BY department ORDER BY performance_score DESC) as performance_percentile
-    FROM employee_performance
+        category, 
+        sale_amount, 
+        SUM(sale_amount) OVER (PARTITION BY category ORDER BY sale_amount) as running_total
+    FROM category_sales
 ''').fetchall()
 
 for row in result:
-    print(f"Employee: {row[0]}, Department: {row[1]}, Score: {row[2]}, Percentile: {row[3]:.2%}")
+    print(f"Category: {row[0]}, Sale Amount: ${row[1]}, Running Total: ${row[2]:.2f}")
