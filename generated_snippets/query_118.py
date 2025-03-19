@@ -1,29 +1,38 @@
-# Generated: 2025-03-19 13:01:33.077857
-# Result: [('Alice', 'Sales', 100000, 85, 0.0), ('Charlie', 'Sales', 95000, 90, 1.0), ('David', 'Engineering', 120000, 95, 0.0), ('Bob', 'Marketing', 90000, 75, 0.0)]
+# Generated: 2025-03-19 13:04:04.396963
+# Result: [('Bob', 'Marketing', Decimal('85000.00'), 88, 3, 1, 0.0), ('Alice', 'Sales', Decimal('100000.00'), 95, 5, 1, 0.5), ('Charlie', 'Engineering', Decimal('120000.00'), 92, 7, 1, 1.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create complex employee performance data
+# Create a complex employee performance tracking system
 conn.execute('''
-CREATE TABLE employee_performance AS
-SELECT * FROM (VALUES
-    (1, 'Alice', 'Sales', 100000, 85),
-    (2, 'Bob', 'Marketing', 90000, 75),
-    (3, 'Charlie', 'Sales', 95000, 90),
-    (4, 'David', 'Engineering', 120000, 95)
-) AS t(id, name, department, salary, performance_score);
-''')
+CREATE TABLE employee_performance (
+    employee_id INT,
+    name VARCHAR,
+    department VARCHAR,
+    salary DECIMAL(10,2),
+    performance_score INT,
+    years_of_service INT
+);
 
-# Use WINDOW function to calculate relative performance
+INSERT INTO employee_performance VALUES
+    (1, 'Alice', 'Sales', 100000.00, 95, 5),
+    (2, 'Bob', 'Marketing', 85000.00, 88, 3),
+    (3, 'Charlie', 'Engineering', 120000.00, 92, 7);
+'''
+)
+
+# Advanced window function analysis with multi-criteria ranking
 result = conn.execute('''
 SELECT
     name,
     department,
     salary,
     performance_score,
-    PERCENT_RANK() OVER (PARTITION BY department ORDER BY performance_score) as performance_percentile
+    years_of_service,
+    DENSE_RANK() OVER (PARTITION BY department ORDER BY performance_score DESC) as performance_rank,
+    PERCENT_RANK() OVER (ORDER BY salary) as salary_percentile
 FROM employee_performance
 ''').fetchall()
 
