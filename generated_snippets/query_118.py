@@ -1,31 +1,28 @@
-# Generated: 2025-03-19 15:51:48.543616
-# Result: [('Electronics', 2022, 50000, 50000), ('Electronics', 2023, 65000, 115000), ('Clothing', 2022, 75000, 75000), ('Clothing', 2023, 80000, 155000)]
+# Generated: 2025-03-19 15:53:30.570334
+# Result: [('Bob', 35, 3)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create temporary table of sales data
-conn.execute('''
-    CREATE TEMPORARY TABLE sales AS
+# Create and query a people table with nested JSON data
+conn.sql('''
+    CREATE TABLE people AS 
     SELECT * FROM (
-        VALUES
-        ('Electronics', 2022, 50000),
-        ('Clothing', 2022, 75000),
-        ('Electronics', 2023, 65000),
-        ('Clothing', 2023, 80000)
-    ) AS t(category, year, revenue)
+        VALUES 
+        ('Alice', {'age': 30, 'skills': ['Python', 'SQL']}),
+        ('Bob', {'age': 35, 'skills': ['Java', 'C++', 'DuckDB']})
+    ) AS t(name, details)
 ''')
 
-# Demonstrate window function: calculate cumulative revenue per category
-result = conn.execute('''
+# Extract nested JSON fields and filter
+result = conn.sql('''
     SELECT 
-        category, 
-        year, 
-        revenue,
-        SUM(revenue) OVER (PARTITION BY category ORDER BY year) as cumulative_revenue
-    FROM sales
+        name, 
+        details['age'] as age, 
+        ARRAY_LENGTH(details['skills']) as skill_count
+    FROM people
+    WHERE 35 = details['age']
 ''').fetchall()
 
-for row in result:
-    print(f"Category: {row[0]}, Year: {row[1]}, Revenue: {row[2]}, Cumulative Revenue: {row[3]}")
+print(result)
