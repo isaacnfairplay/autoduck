@@ -1,35 +1,43 @@
-# Generated: 2025-03-19 15:26:27.167030
-# Result: [('Laptop', 'Electronics', Decimal('1200.50'), 1), ('Tablet', 'Electronics', Decimal('950.75'), 2), ('Phone', 'Electronics', Decimal('800.25'), 3), ('Book', 'Literature', Decimal('25.00'), 1), ('Magazine', 'Literature', Decimal('15.50'), 2)]
+# Generated: 2025-03-19 15:28:10.530679
+# Result: [('CEO', 0), ('CFO', 1), ('CTO', 1), ('Senior Engineer', 2), ('Junior Engineer', 3)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample product sales data
+# Create an employee hierarchy table
 conn.execute('''
-    CREATE TABLE product_sales (
-        product TEXT,
-        category TEXT,
-        sales DECIMAL(10,2)
+    CREATE TABLE employees (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        manager_id INTEGER
     );
 
-    INSERT INTO product_sales VALUES
-        ('Laptop', 'Electronics', 1200.50),
-        ('Phone', 'Electronics', 800.25),
-        ('Tablet', 'Electronics', 950.75),
-        ('Book', 'Literature', 25.00),
-        ('Magazine', 'Literature', 15.50)
+    INSERT INTO employees VALUES
+        (1, 'CEO', NULL),
+        (2, 'CTO', 1),
+        (3, 'CFO', 1),
+        (4, 'Senior Engineer', 2),
+        (5, 'Junior Engineer', 4)
 ''');
 
-# Calculate sales rank within each category
+# Recursive query to generate organizational hierarchy
 result = conn.execute('''
-    SELECT 
-        product, 
-        category, 
-        sales,
-        RANK() OVER (PARTITION BY category ORDER BY sales DESC) as sales_rank
-    FROM product_sales
+    WITH RECURSIVE org_hierarchy AS (
+        SELECT id, name, manager_id, 0 as depth
+        FROM employees
+        WHERE manager_id IS NULL
+
+        UNION ALL
+
+        SELECT e.id, e.name, e.manager_id, oh.depth + 1
+        FROM employees e
+        JOIN org_hierarchy oh ON e.manager_id = oh.id
+    )
+    SELECT name, depth
+    FROM org_hierarchy
+    ORDER BY depth, name
 ''').fetchall()
 
 for row in result:
-    print(f'Product: {row[0]}, Category: {row[1]}, Sales: ${row[2]}, Rank: {row[3]}')
+    print(f'Employee: {row[0]}, Hierarchy Depth: {row[1]}')
