@@ -1,27 +1,29 @@
-# Generated: 2025-03-19 10:25:19.901779
-# Result: [(datetime.date(2023, 7, 1), Decimal('150.500'), 150.5), (datetime.date(2023, 7, 2), Decimal('200.750'), 175.625), (datetime.date(2023, 7, 3), Decimal('180.250'), 177.16666666666666), (datetime.date(2023, 7, 4), Decimal('220.000'), 200.33333333333334), (datetime.date(2023, 7, 5), Decimal('190.500'), 196.91666666666666)]
+# Generated: 2025-03-19 10:26:12.500018
+# Result: [(datetime.date(2023, 7, 1), 'Laptop', 10, Decimal('999.99'), Decimal('9999.90'), 'North'), (datetime.date(2023, 7, 1), 'Smartphone', 15, Decimal('599.50'), Decimal('8992.50'), 'South'), (datetime.date(2023, 7, 2), 'Laptop', 8, Decimal('999.99'), Decimal('7999.92'), 'East'), (datetime.date(2023, 7, 2), 'Tablet', 5, Decimal('399.75'), Decimal('1998.75'), 'West')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
+# Create daily sales table with comprehensive schema
 conn.execute('''
-    CREATE TABLE sales (sale_date DATE, amount DECIMAL);
-    INSERT INTO sales VALUES
-        ('2023-07-01', 150.50),
-        ('2023-07-02', 200.75),
-        ('2023-07-03', 180.25),
-        ('2023-07-04', 220.00),
-        ('2023-07-05', 190.50)
+    CREATE TABLE daily_sales (
+        sale_date DATE,
+        product_name VARCHAR,
+        quantity INTEGER,
+        unit_price DECIMAL(10,2),
+        total_revenue DECIMAL(12,2),
+        region VARCHAR
+    );
+
+    INSERT INTO daily_sales VALUES
+        ('2023-07-01', 'Laptop', 10, 999.99, 9999.90, 'North'),
+        ('2023-07-01', 'Smartphone', 15, 599.50, 8992.50, 'South'),
+        ('2023-07-02', 'Laptop', 8, 999.99, 7999.92, 'East'),
+        ('2023-07-02', 'Tablet', 5, 399.75, 1998.75, 'West')
 ''');
 
-result = conn.execute('''
-    SELECT 
-        sale_date, 
-        amount,
-        AVG(amount) OVER (ORDER BY sale_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as rolling_avg
-    FROM sales
-''').fetchall()
-
+# Query daily sales data
+result = conn.execute('SELECT * FROM daily_sales').fetchall()
 for row in result:
     print(row)
