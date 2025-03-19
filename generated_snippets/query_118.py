@@ -1,36 +1,34 @@
-# Generated: 2025-03-19 11:25:02.493182
-# Result: [('Laptop', 'Electronics', Decimal('1200.00'), 1), ('Smartphone', 'Electronics', Decimal('800.50'), 2), ('Headphones', 'Electronics', Decimal('150.25'), 3), ('Running Shoes', 'Sports', Decimal('120.00'), 1)]
+# Generated: 2025-03-19 11:25:54.988583
+# Result: [(1, datetime.datetime(2023, 6, 1, 10, 0), 22.5, 22.5), (1, datetime.datetime(2023, 6, 1, 11, 0), 23.100000381469727, 22.800000190734863), (1, datetime.datetime(2023, 6, 1, 12, 0), 23.799999237060547, 23.449999809265137), (2, datetime.datetime(2023, 6, 1, 10, 0), 21.700000762939453, 21.700000762939453)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a table of products
+# Create time series data
 conn.execute('''
-CREATE TABLE products (
-    product_id INTEGER,
-    name VARCHAR,
-    category VARCHAR,
-    price DECIMAL(10,2)
+CREATE TABLE temperature_readings (
+    timestamp TIMESTAMP,
+    sensor_id INTEGER,
+    temperature FLOAT
 );
 
-INSERT INTO products VALUES
-(1, 'Laptop', 'Electronics', 1200.00),
-(2, 'Smartphone', 'Electronics', 800.50),
-(3, 'Headphones', 'Electronics', 150.25),
-(4, 'Running Shoes', 'Sports', 120.00);
-'''
-)
+INSERT INTO temperature_readings VALUES
+('2023-06-01 10:00:00', 1, 22.5),
+('2023-06-01 11:00:00', 1, 23.1),
+('2023-06-01 12:00:00', 1, 23.8),
+('2023-06-01 10:00:00', 2, 21.7);
+''')
 
-# Analytical query using window functions to rank products by price within category
+# Calculate moving average with window function
 result = conn.execute('''
-SELECT
-    name,
-    category,
-    price,
-    RANK() OVER (PARTITION BY category ORDER BY price DESC) as price_rank
-FROM products
+SELECT 
+    sensor_id, 
+    timestamp, 
+    temperature,
+    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg
+FROM temperature_readings
 ''').fetchall()
 
 for row in result:
-    print(f"{row[0]} ({row[1]}): ${row[2]} - Rank: {row[3]}")
+    print(f"Sensor {row[0]} at {row[1]}: {row[2]}°C (Moving Avg: {row[3]:.2f}°C)")
