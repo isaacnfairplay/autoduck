@@ -1,16 +1,23 @@
-# Generated: 2025-03-19 14:44:50.711517
-# Result: [('Apple', Decimal('0.50'), Decimal('0.50')), ('Orange', Decimal('0.60'), Decimal('1.10')), ('Banana', Decimal('0.75'), Decimal('1.85'))]
+# Generated: 2025-03-19 14:45:49.882552
+# Result: [('Paris', 'France', 2161000, 1), ('Berlin', 'Germany', 3669000, 1), ('London', 'UK', 8982000, 1)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a temporary table of products
-conn.execute("CREATE TABLE products (id INTEGER, name VARCHAR, price DECIMAL(10,2))")
-conn.execute("INSERT INTO products VALUES (1, 'Apple', 0.50), (2, 'Banana', 0.75), (3, 'Orange', 0.60)")
+# Create sample table with geographic data
+conn.execute("CREATE TABLE cities (name VARCHAR, country VARCHAR, population INTEGER)")
+conn.execute("INSERT INTO cities VALUES ('Paris', 'France', 2161000), ('London', 'UK', 8982000), ('Berlin', 'Germany', 3669000)")
 
-# Use window function to calculate running total of prices
-result = conn.execute("SELECT name, price, SUM(price) OVER (ORDER BY price) as running_total FROM products").fetchall()
+# Use window function to rank cities by population within their country
+result = conn.execute("""
+    SELECT 
+        name, 
+        country, 
+        population, 
+        RANK() OVER (PARTITION BY country ORDER BY population DESC) as population_rank
+    FROM cities
+""").fetchall()
 
 for row in result:
-    print(f"{row[0]}: Price ${row[1]}, Running Total ${row[2]})")
+    print(f"{row[0]} ({row[1]}): Population {row[2]}, Rank {row[3]}")
