@@ -1,34 +1,39 @@
-# Generated: 2025-03-19 18:10:58.261415
-# Result: [(2, 102, Decimal('275.25'), Decimal('275.25')), (1, 101, Decimal('150.50'), Decimal('150.50')), (3, 101, Decimal('89.99'), Decimal('240.49')), (4, 103, Decimal('450.00'), Decimal('450.00'))]
+# Generated: 2025-03-19 18:11:58.404466
+# Result: [(datetime.datetime(2023, 6, 1, 10, 0), 'Los Angeles', 68.30000305175781, 69.0), (datetime.datetime(2023, 6, 1, 11, 0), 'Los Angeles', 69.69999694824219, 69.0), (datetime.datetime(2023, 6, 1, 10, 0), 'New York', 72.5, 73.8499984741211), (datetime.datetime(2023, 6, 1, 11, 0), 'New York', 75.19999694824219, 74.89999898274739), (datetime.datetime(2023, 6, 1, 12, 0), 'New York', 77.0, 76.0999984741211)]
 # Valid: True
 import duckdb
 
-# Connect to an in-memory database
+# Connect to in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create a sample table of customer orders
+# Create time series data with temperature measurements
 conn.execute('''
-    CREATE TABLE orders (
-        order_id INTEGER,
-        customer_id INTEGER,
-        total_amount DECIMAL(10,2)
+    CREATE TABLE weather_data (
+        timestamp TIMESTAMP,
+        city VARCHAR,
+        temperature FLOAT
     );
 
-    INSERT INTO orders VALUES
-        (1, 101, 150.50),
-        (2, 102, 275.25),
-        (3, 101, 89.99),
-        (4, 103, 450.00);
-''')
+    INSERT INTO weather_data VALUES
+        ('2023-06-01 10:00:00', 'New York', 72.5),
+        ('2023-06-01 11:00:00', 'New York', 75.2),
+        ('2023-06-01 12:00:00', 'New York', 77.0),
+        ('2023-06-01 10:00:00', 'Los Angeles', 68.3),
+        ('2023-06-01 11:00:00', 'Los Angeles', 69.7);
+''');
 
-# Use window function to calculate running total for each customer
+# Calculate moving average of temperature with 2-hour window
 result = conn.execute('''
     SELECT 
-        order_id, 
-        customer_id, 
-        total_amount,
-        SUM(total_amount) OVER (PARTITION BY customer_id ORDER BY order_id) as cumulative_total
-    FROM orders
+        timestamp, 
+        city, 
+        temperature,
+        AVG(temperature) OVER (
+            PARTITION BY city 
+            ORDER BY timestamp 
+            RANGE BETWEEN INTERVAL 1 HOUR PRECEDING AND INTERVAL 1 HOUR FOLLOWING
+        ) as temperature_moving_avg
+    FROM weather_data
 ''').fetchall()
 
 for row in result:
