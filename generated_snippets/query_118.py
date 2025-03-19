@@ -1,33 +1,32 @@
-# Generated: 2025-03-19 10:20:04.369039
-# Result: [('South', 'Smartphone', Decimal('35000.00'), 1), ('West', 'Laptop', Decimal('45000.00'), 1), ('North', 'Laptop', Decimal('50000.00'), 1), ('East', 'Tablet', Decimal('25000.00'), 1)]
+# Generated: 2025-03-19 10:20:56.619904
+# Result: [(datetime.date(2023, 1, 1), 'Widget', Decimal('100.000'), 100.0), (datetime.date(2023, 1, 2), 'Widget', Decimal('150.000'), 125.0), (datetime.date(2023, 1, 3), 'Widget', Decimal('200.000'), 150.0), (datetime.date(2023, 1, 4), 'Widget', Decimal('180.000'), 176.66666666666666)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create geographic sales data with product and region
+# Create sales data with dates
 conn.execute('''
-    CREATE TABLE regional_sales (
-        region VARCHAR,
-        product VARCHAR,
-        sales_amount DECIMAL(10,2)
-    );
-
-    INSERT INTO regional_sales VALUES
-        ('North', 'Laptop', 50000.00),
-        ('South', 'Smartphone', 35000.00),
-        ('East', 'Tablet', 25000.00),
-        ('West', 'Laptop', 45000.00)
+    CREATE TABLE sales (date DATE, product TEXT, amount DECIMAL);
+    INSERT INTO sales VALUES 
+        ('2023-01-01', 'Widget', 100),
+        ('2023-01-02', 'Widget', 150),
+        ('2023-01-03', 'Widget', 200),
+        ('2023-01-04', 'Widget', 180)
 ''');
 
-# Analyze sales by region with ranking
+# Calculate 3-day rolling average
 result = conn.execute('''
     SELECT 
-        region, 
+        date, 
         product, 
-        sales_amount,
-        RANK() OVER (PARTITION BY region ORDER BY sales_amount DESC) as sales_rank
-    FROM regional_sales
+        amount,
+        AVG(amount) OVER (
+            PARTITION BY product 
+            ORDER BY date 
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rolling_avg
+    FROM sales
 ''').fetchall()
 
 for row in result:
