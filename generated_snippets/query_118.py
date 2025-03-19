@@ -1,27 +1,34 @@
-# Generated: 2025-03-19 16:36:32.406389
-# Result: [(1, [1, 2, 3], [2, 4, 6], [3]), (2, [4, 5, 6], [8, 10, 12], [4, 5, 6]), (3, [7, 8, 9], [14, 16, 18], [7, 8, 9])]
+# Generated: 2025-03-19 16:37:24.703695
+# Result: [(2, 'Electronics', Decimal('750.50'), 1, 1), (4, 'Electronics', Decimal('600.25'), 2, 2), (1, 'Electronics', Decimal('500.00'), 3, 3), (5, 'Clothing', Decimal('300.00'), 1, 4), (3, 'Clothing', Decimal('250.75'), 2, 5)]
 # Valid: True
 import duckdb
 
-# Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create array transformation example
-conn.execute('CREATE TABLE arrays (id INTEGER, data INTEGER[])')
-conn.executemany('INSERT INTO arrays VALUES (?, ?)', [
-    (1, [1, 2, 3]),
-    (2, [4, 5, 6]),
-    (3, [7, 8, 9])
+conn.execute('''
+CREATE TABLE sales (
+    product_id INTEGER,
+    category TEXT,
+    sale_amount DECIMAL(10,2)
+);
+''')
+
+conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
+    (1, 'Electronics', 500.00),
+    (2, 'Electronics', 750.50),
+    (3, 'Clothing', 250.75),
+    (4, 'Electronics', 600.25),
+    (5, 'Clothing', 300.00)
 ])
 
-# Transform array using DuckDB functions
 result = conn.execute('''
-    SELECT 
-        id, 
-        data, 
-        array_transform(data, x -> x * 2) as doubled_data,
-        array_filter(data, x -> x > 2) as filtered_data
-    FROM arrays
+SELECT 
+    product_id, 
+    category, 
+    sale_amount,
+    RANK() OVER (PARTITION BY category ORDER BY sale_amount DESC) as category_rank,
+    DENSE_RANK() OVER (ORDER BY sale_amount DESC) as overall_dense_rank
+FROM sales
 ''').fetchall()
 
 print(result)
