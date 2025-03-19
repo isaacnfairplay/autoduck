@@ -39,9 +39,9 @@
             width: 120px;
             height: 120px;
             cursor: pointer;
-            display: none;
             border: 1px solid #666;
             border-radius: 3px;
+            background-color: #333; /* Visible even when empty */
         }
         #video {
             width: 200px;
@@ -159,10 +159,11 @@
                 });
                 video.srcObject = stream;
                 video.style.display = 'block';
-                await video.play(); // Ensure video is playing
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+                await video.play();
                 canvas.width = video.videoWidth || 200;
                 canvas.height = video.videoHeight || 150;
-                addLog('Camera initialized successfully');
+                addLog('Camera initialized: ' + video.videoWidth + 'x' + video.videoHeight);
                 return true;
             } catch (err) {
                 console.error('Camera error:', err);
@@ -172,10 +173,16 @@
             }
         }
 
-        // Basic pupil detection
+        // Capture image from video
         function captureImage() {
+            if (!video.videoWidth || !video.videoHeight) {
+                addLog('Warning: Video dimensions not ready');
+                return '';
+            }
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/jpeg');
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            addLog('Captured image: ' + (dataUrl.length / 1024).toFixed(1) + 'KB');
+            return dataUrl;
         }
 
         // Photo upload handling
@@ -194,10 +201,15 @@
         analyzeButton.addEventListener('click', async () => {
             const cameraSuccess = await setupCamera();
             if (cameraSuccess) {
-                baselinePreview.src = captureImage();
-                baselineStep.style.display = 'block';
-                analyzeButton.style.display = 'none';
-                addLog('Showing pupil baseline preview');
+                const imageData = captureImage();
+                if (imageData) {
+                    baselinePreview.src = imageData;
+                    baselineStep.style.display = 'block';
+                    analyzeButton.style.display = 'none';
+                    addLog('Showing pupil baseline preview');
+                } else {
+                    addLog('Failed to capture baseline image');
+                }
             }
         });
 
@@ -209,8 +221,11 @@
         });
 
         retryBaseline.addEventListener('click', () => {
-            baselinePreview.src = captureImage();
-            addLog('Retrying baseline capture');
+            const imageData = captureImage();
+            if (imageData) {
+                baselinePreview.src = imageData;
+                addLog('Retried baseline capture');
+            }
         });
 
         // Photo cycling
@@ -240,15 +255,22 @@
         // Snapshot handling
         function takeSnapshot(id, timeLabel) {
             const snapshot = snapshots[id];
-            snapshot.src = captureImage();
-            snapshot.style.display = 'block';
-            addLog(`Captured snapshot at ${timeLabel} for photo ${currentIndex}`);
+            const imageData = captureImage();
+            if (imageData) {
+                snapshot.src = imageData;
+                snapshot.style.display = 'block';
+                addLog(`Snapshot ${id} captured at ${timeLabel} for photo ${currentIndex}`);
+            } else {
+                addLog(`Failed to capture snapshot ${id} at ${timeLabel}`);
+            }
         }
 
         function resetSnapshots() {
             Object.values(snapshots).forEach(snap => {
                 snap.style.display = 'none';
                 snap.src = '';
+                snap.removeAttribute('src'); // Ensure complete reset
+                addLog(`Reset snapshot ${snap.id}`);
             });
         }
 
@@ -259,7 +281,7 @@
             snap.addEventListener('click', () => {
                 const isHidden = snap.style.display === 'none';
                 snap.style.display = isHidden ? 'block' : 'none';
-                addLog(`Snapshot ${snap.alt} ${isHidden ? 'shown' : 'hidden'}`);
+                addLog(`Snapshot ${snap.id} ${isHidden ? 'shown' : 'hidden'}`);
             });
         });
 
