@@ -1,37 +1,34 @@
-# Generated: 2025-03-19 08:07:35.033681
-# Result: [(101, datetime.date(2023, 6, 15), Decimal('1200.50'), Decimal('1200.50'), 1), (102, datetime.date(2023, 6, 16), Decimal('800.25'), Decimal('800.25'), 2), (101, datetime.date(2023, 6, 17), Decimal('150.00'), Decimal('1350.50'), 3)]
+# Generated: 2025-03-19 08:08:26.743964
+# Result: [('UK', 9000000, 1), ('Japan', 14000000, 1), ('USA', 8400000, 1)]
 # Valid: True
 import duckdb
 
-# Create an in-memory database connection
+# Create in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Create a table for online orders
+# Create a table with geographic data
 conn.execute('''
-CREATE TABLE orders (
-    order_id INTEGER,
-    customer_id INTEGER,
-    product_name VARCHAR,
-    order_date DATE,
-    total_amount DECIMAL(10,2)
+CREATE TABLE cities (
+    city VARCHAR,
+    country VARCHAR,
+    population INTEGER
 );
 
-INSERT INTO orders VALUES
-    (1, 101, 'Laptop', '2023-06-15', 1200.50),
-    (2, 102, 'Smartphone', '2023-06-16', 800.25),
-    (3, 101, 'Headphones', '2023-06-17', 150.00);
-'''
-)
+INSERT INTO cities VALUES
+    ('New York', 'USA', 8400000),
+    ('London', 'UK', 9000000),
+    ('Tokyo', 'Japan', 14000000);
+''')
 
-# Perform a query with multiple window functions
+# Perform aggregation and filtering
 result = conn.execute('''
 SELECT 
-    customer_id,
-    order_date,
-    total_amount,
-    SUM(total_amount) OVER (PARTITION BY customer_id ORDER BY order_date) as cumulative_spend,
-    RANK() OVER (ORDER BY total_amount DESC) as order_rank
-FROM orders
+    country, 
+    MAX(population) as max_population,
+    COUNT(*) as city_count
+FROM cities
+GROUP BY country
+HAVING MAX(population) > 5000000
 ''').fetchall()
 
 for row in result:
