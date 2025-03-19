@@ -1,33 +1,34 @@
-# Generated: 2025-03-19 10:08:58.879616
-# Result: [(1, datetime.datetime(2023, 6, 1, 10, 0), Decimal('22.50'), Decimal('23.10')), (1, datetime.datetime(2023, 6, 1, 11, 0), Decimal('23.10'), Decimal('23.10')), (2, datetime.datetime(2023, 6, 1, 10, 0), Decimal('24.30'), Decimal('24.80')), (2, datetime.datetime(2023, 6, 1, 11, 0), Decimal('24.80'), Decimal('24.80'))]
+# Generated: 2025-03-19 10:09:51.566723
+# Result: [('Tablet', datetime.datetime(2023, 1, 2, 14, 20), 2, 2), ('Laptop', datetime.datetime(2023, 1, 1, 10, 30), 5, 5), ('Laptop', datetime.datetime(2023, 1, 2, 9, 15), 7, 12), ('Phone', datetime.datetime(2023, 1, 1, 11, 45), 3, 3)]
 # Valid: True
 import duckdb
 
-# Connect to in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create and populate sensor temperature data
+# Create time series sales data with datetime
 conn.execute('''
-    CREATE TABLE sensor_readings (
-        sensor_id INTEGER,
-        timestamp TIMESTAMP,
-        temperature DECIMAL(5,2)
+    CREATE TABLE sales_timeseries (
+        date TIMESTAMP,
+        product VARCHAR,
+        quantity INTEGER,
+        price DECIMAL(10,2)
     );
-    INSERT INTO sensor_readings VALUES
-        (1, '2023-06-01 10:00:00', 22.5),
-        (1, '2023-06-01 11:00:00', 23.1),
-        (2, '2023-06-01 10:00:00', 24.3),
-        (2, '2023-06-01 11:00:00', 24.8)
+
+    INSERT INTO sales_timeseries VALUES
+        ('2023-01-01 10:30:00', 'Laptop', 5, 999.99),
+        ('2023-01-01 11:45:00', 'Phone', 3, 599.50),
+        ('2023-01-02 09:15:00', 'Laptop', 7, 999.99),
+        ('2023-01-02 14:20:00', 'Tablet', 2, 399.75)
 ''');
 
-# Calculate max temperature per sensor with window function
+# Analyze sales time series with window functions
 result = conn.execute('''
     SELECT 
-        sensor_id, 
-        timestamp, 
-        temperature,
-        MAX(temperature) OVER (PARTITION BY sensor_id) as max_temp
-    FROM sensor_readings
+        product, 
+        date, 
+        quantity,
+        SUM(quantity) OVER (PARTITION BY product ORDER BY date) as cumulative_sales
+    FROM sales_timeseries
 ''').fetchall()
 
 for row in result:
