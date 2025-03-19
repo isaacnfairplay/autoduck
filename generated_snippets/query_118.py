@@ -1,16 +1,13 @@
-# Generated: 2025-03-19 13:45:53.611560
-# Result: [([1, 2, 3, 4, 5], [2, 4, 6, 8, 10], [False, True, False, True, False])]
+# Generated: 2025-03-19 13:46:48.100494
+# Result: [([1, 4, 9, 16, 25],)]
 # Valid: True
 import duckdb
 
+# Create connection and memory table with numeric list
 conn = duckdb.connect(':memory:')
+conn.execute('CREATE TABLE numbers (values_list INTEGER[])')
+conn.execute('INSERT INTO numbers VALUES ([1, 2, 3, 4, 5])')
 
-# Demonstrate array_transform to convert list and apply mathematical operations
-result = conn.execute("""
-    SELECT 
-        [1, 2, 3, 4, 5] as original_list,
-        array_transform([1, 2, 3, 4, 5], x -> x * 2) as doubled_list,
-        array_transform([1, 2, 3, 4, 5], x -> x % 2 = 0) as is_even_list
-""").fetchall()
-
+# Transform array by squaring each element
+result = conn.execute('SELECT array_transform(values_list, x -> x * x) as squared_values FROM numbers').fetchall()
 print(result)
