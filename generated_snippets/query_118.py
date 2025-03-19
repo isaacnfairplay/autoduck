@@ -1,13 +1,20 @@
-# Generated: 2025-03-19 17:58:11.130182
-# Result: [([2, 3, 4, 5],)]
+# Generated: 2025-03-19 17:59:02.226164
+# Result: [(1, 'Alice', 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create array and use array_transform to increment each element
-result = conn.execute('''
-    SELECT array_transform([1, 2, 3, 4], x -> x + 1) AS incremented_array
-''').fetchall()
+# Create a table with JSON data and extract nested values
+conn.execute("CREATE TABLE users (id INTEGER, details JSON)")
+conn.execute("INSERT INTO users VALUES (1, '{\"name\": \"Alice\", \"skills\": [\"Python\", \"SQL\"]}')")
 
-print(result[0][0])  # Outputs: [2, 3, 4, 5]
+result = conn.execute("""
+    SELECT 
+        id, 
+        details->>'name' AS name,
+        json_array_length(details->'skills') AS skill_count
+    FROM users
+""").fetchall()
+
+print(result)  # Demonstrates JSON extraction and array length computation
