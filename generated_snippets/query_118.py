@@ -1,12 +1,24 @@
-# Generated: 2025-03-19 14:15:38.921365
-# Result: [1, 0, 2, 1]
+# Generated: 2025-03-19 14:16:29.989535
+# Result: [('laptop', 45, 20), ('phone', 25, 12), ('tablet', 27, 11)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-result = conn.execute('''
-    SELECT array_transform([10, 15, 20, 25], x -> x % 3) as remainder_array
-''').fetchone()[0]
+# Create a table with product inventory and use LIST_AGGREGATE to compute total quantities
+conn.execute('CREATE TABLE inventory (product TEXT, quantities INTEGER[])')
+conn.execute("""INSERT INTO inventory VALUES
+    ('laptop', [10, 15, 20]),
+    ('phone', [5, 8, 12]),
+    ('tablet', [7, 9, 11])
+""")
 
-print(result)
+result = conn.execute('''
+    SELECT product, 
+           LIST_AGGREGATE(quantities, 'sum') as total_quantity,
+           LIST_AGGREGATE(quantities, 'max') as max_quantity
+    FROM inventory
+''').fetchall()
+
+for row in result:
+    print(f"Product: {row[0]}, Total Quantity: {row[1]}, Max Quantity: {row[2]}")
