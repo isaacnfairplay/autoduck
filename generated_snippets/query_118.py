@@ -1,33 +1,30 @@
-# Generated: 2025-03-19 11:20:33.361529
-# Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
+# Generated: 2025-03-19 11:21:32.233834
+# Result: [('Electronics', 1500, 39.473684210526315), ('Electronics', 2300, 60.526315789473685), ('Clothing', 1000, 36.36363636363637), ('Clothing', 1750, 63.63636363636363)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-conn.execute('''
-CREATE TABLE employees (
-    employee_id INTEGER PRIMARY KEY,
-    name VARCHAR,
-    manager_id INTEGER
-);
+# Create sample sales data
+conn.execute("""
+CREATE TABLE sales AS
+SELECT 'Electronics' as category, 1500 as amount
+UNION ALL
+SELECT 'Electronics', 2300
+UNION ALL
+SELECT 'Clothing', 1000
+UNION ALL
+SELECT 'Clothing', 1750
+""")
 
-INSERT INTO employees VALUES
-    (1, 'Alice', NULL),
-    (2, 'Bob', 1),
-    (3, 'Charlie', 1);
+# Calculate percentage of total sales within each category
+result = conn.execute("""
+SELECT 
+    category, 
+    amount,
+    amount * 100.0 / SUM(amount) OVER (PARTITION BY category) as category_percentage
+FROM sales
+""").fetchall()
 
-WITH RECURSIVE org_hierarchy AS (
-    SELECT employee_id, name, manager_id, 0 AS level
-    FROM employees
-    WHERE manager_id IS NULL
-
-    UNION ALL
-
-    SELECT e.employee_id, e.name, e.manager_id, h.level + 1
-    FROM employees e
-    JOIN org_hierarchy h ON e.manager_id = h.employee_id
-)
-
-SELECT * FROM org_hierarchy;
-''').fetchall()
+for row in result:
+    print(f"Category: {row[0]}, Amount: {row[1]}, Percentage: {row[2]:.2f}%")
