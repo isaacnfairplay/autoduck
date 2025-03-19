@@ -1,30 +1,33 @@
-# Generated: 2025-03-19 12:31:02.827136
-# Result: []
+# Generated: 2025-03-19 12:32:03.864329
+# Result: [(1, 'Electronics', Decimal('50000.00'), 1, 47500.0), (2, 'Electronics', Decimal('45000.00'), 2, 47500.0), (4, 'Clothing', Decimal('35000.00'), 1, 32500.0), (3, 'Clothing', Decimal('30000.00'), 2, 32500.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table for tracking product inventory
 conn.execute('''
-CREATE TABLE inventory (
+CREATE TABLE products (
     product_id INT,
-    product_name VARCHAR,
-    quantity INT,
-    reorder_level INT
+    category VARCHAR,
+    sales DECIMAL(10,2)
 );
 
-INSERT INTO inventory VALUES
-    (1, 'Laptop', 50, 20),
-    (2, 'Monitor', 75, 30),
-    (3, 'Keyboard', 100, 25);
+INSERT INTO products VALUES
+    (1, 'Electronics', 50000),
+    (2, 'Electronics', 45000),
+    (3, 'Clothing', 30000),
+    (4, 'Clothing', 35000);
 ''')
 
-# Find products below reorder threshold
+# Correlated subquery ranking products within category
 result = conn.execute('''
-SELECT product_name, quantity, reorder_level
-FROM inventory
-WHERE quantity < reorder_level
+SELECT
+    product_id,
+    category,
+    sales,
+    RANK() OVER (PARTITION BY category ORDER BY sales DESC) as category_rank,
+    (SELECT AVG(sales) FROM products p2 WHERE p2.category = p1.category) as category_avg_sales
+FROM products p1
 ''').fetchall()
 
 for row in result:
