@@ -1,5 +1,5 @@
-# Generated: 2025-03-19 12:36:21.592426
-# Result: [('Laptop', 'Electronics', Decimal('1200.00')), ('Chair', 'Furniture', Decimal('250.50'))]
+# Generated: 2025-03-19 12:37:13.271081
+# Result: [('Laptop', 'Electronics', Decimal('1200.00'), 1), ('Chair', 'Furniture', Decimal('250.50'), 2), ('Shirt', 'Clothing', Decimal('50.00'), 3)]
 # Valid: True
 import duckdb
 
@@ -19,9 +19,12 @@ INSERT INTO sales VALUES
 ''')
 
 result = conn.execute('''
-SELECT product, category, amount
+SELECT 
+    product, 
+    category, 
+    amount,
+    RANK() OVER (ORDER BY amount DESC) as overall_rank
 FROM sales
-WHERE amount > 100
 ''').fetchall()
 
 for row in result:
