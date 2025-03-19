@@ -1,35 +1,35 @@
-# Generated: 2025-03-19 16:59:03.777684
-# Result: [('Clothing', 'Mens', Decimal('50.00'), 0), ('Clothing', 'Womens', Decimal('100.00'), 0), ('Clothing', None, Decimal('150.00'), 1), ('Electronics', 'Computers', Decimal('2700.00'), 0), ('Electronics', 'Phones', Decimal('800.00'), 0), ('Electronics', None, Decimal('3500.00'), 1)]
+# Generated: 2025-03-19 16:59:56.830745
+# Result: [('Engineering', 'Frontend', 'Charlie', Decimal('91.70'), 2, 0.0), ('Sales', 'SMB', 'Eve', Decimal('87.20'), 2, 0.0), ('Sales', 'Enterprise', 'David', Decimal('89.60'), 1, 0.0), ('Engineering', 'Backend', 'Bob', Decimal('88.30'), 3, 0.0), ('Engineering', 'Backend', 'Alice', Decimal('92.50'), 1, 1.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sample product sales table with hierarchical categories
-conn.sql('''CREATE TABLE product_sales (
-    category VARCHAR,
-    subcategory VARCHAR,
-    product VARCHAR,
-    sales DECIMAL(10,2)
+# Create complex organizational hierarchy with nested aggregations
+conn.sql('''CREATE TABLE employee_performance (
+    department VARCHAR,
+    team VARCHAR,
+    employee_name VARCHAR,
+    performance_score DECIMAL(5,2)
 );
 
-INSERT INTO product_sales VALUES
-    ('Electronics', 'Computers', 'Laptop', 1500.00),
-    ('Electronics', 'Computers', 'Desktop', 1200.00),
-    ('Electronics', 'Phones', 'Smartphone', 800.00),
-    ('Clothing', 'Mens', 'Shirt', 50.00),
-    ('Clothing', 'Womens', 'Dress', 100.00)
-''');
+INSERT INTO employee_performance VALUES
+    ('Engineering', 'Backend', 'Alice', 92.5),
+    ('Engineering', 'Backend', 'Bob', 88.3),
+    ('Engineering', 'Frontend', 'Charlie', 91.7),
+    ('Sales', 'Enterprise', 'David', 89.6),
+    ('Sales', 'SMB', 'Eve', 87.2)
+''')
 
-# Compute total sales with nested grouping
+# Compute performance metrics using advanced window and ranking functions
 result = conn.sql('''SELECT
-    category,
-    subcategory,
-    SUM(sales) as total_sales,
-    GROUPING(category, subcategory) as grouping_id
-FROM product_sales
-GROUP BY GROUPING SETS ((category), (category, subcategory))
-ORDER BY category, subcategory
+    department,
+    team,
+    employee_name,
+    performance_score,
+    RANK() OVER (PARTITION BY department ORDER BY performance_score DESC) as dept_rank,
+    PERCENT_RANK() OVER (PARTITION BY team ORDER BY performance_score) as team_percentile
+FROM employee_performance
 ''').fetchall()
 
 print(result)
