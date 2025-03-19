@@ -1,22 +1,36 @@
-# Generated: 2025-03-19 18:09:11.325062
-# Result: [([1, 4, 9],), ([16, 25, 36],)]
+# Generated: 2025-03-19 18:10:06.574508
+# Result: [(3, 'Electronics', Decimal('1200.00'), 1), (1, 'Electronics', Decimal('500.50'), 2), (5, 'Electronics', Decimal('350.00'), 3), (4, 'Books', Decimal('75.25'), 1), (2, 'Clothing', Decimal('250.75'), 1)]
 # Valid: True
 import duckdb
 
+# Create an in-memory database and connect
 conn = duckdb.connect(':memory:')
 
-# Create sample data with arrays
-conn.sql("""
-CREATE TABLE number_arrays AS
-SELECT [1, 2, 3] AS original_array
-UNION ALL
-SELECT [4, 5, 6]
-""")
+# Create a table with sales data
+conn.execute('''
+    CREATE TABLE sales (
+        product_id INTEGER,
+        category VARCHAR,
+        sale_amount DECIMAL(10,2)
+    );
 
-# Use array_transform to square each array element
-result = conn.sql("""
-SELECT array_transform(original_array, x -> x * x) AS squared_array
-FROM number_arrays
-""").fetchall()
+    INSERT INTO sales VALUES
+        (1, 'Electronics', 500.50),
+        (2, 'Clothing', 250.75),
+        (3, 'Electronics', 1200.00),
+        (4, 'Books', 75.25),
+        (5, 'Electronics', 350.00);
+''')
 
-print(result)
+# Perform window function to rank sales by category
+result = conn.execute('''
+    SELECT
+        product_id,
+        category,
+        sale_amount,
+        RANK() OVER (PARTITION BY category ORDER BY sale_amount DESC) as category_rank
+    FROM sales
+''').fetchall()
+
+for row in result:
+    print(row)
