@@ -1,34 +1,29 @@
-# Generated: 2025-03-19 11:17:51.153500
+# Generated: 2025-03-19 11:19:35.044960
 # Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table and insert sample data
+# Create time series table tracking inventory changes
 conn.sql('''
-CREATE TABLE temperatures (
-    city VARCHAR,
-    date DATE,
-    temp_celsius FLOAT
+CREATE TABLE inventory_log (
+    product_id INTEGER,
+    change_time TIMESTAMP,
+    quantity_change INTEGER
 );
 
-INSERT INTO temperatures VALUES
-    ('New York', '2023-07-01', 28.5),
-    ('New York', '2023-07-02', 29.1),
-    ('Chicago', '2023-07-01', 25.3),
-    ('Chicago', '2023-07-02', 26.7);
-''')
+INSERT INTO inventory_log VALUES
+    (1, '2023-07-01 10:00:00', 50),
+    (1, '2023-07-01 11:00:00', -10),
+    (1, '2023-07-01 12:00:00', 20);
 
-# Complex windowing with inter-city temperature comparisons
-rel = conn.sql('''
-SELECT 
-    city, 
-    date, 
-    temp_celsius,
-    AVG(temp_celsius) OVER (PARTITION BY city ORDER BY date ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg,
-    temp_celsius - AVG(temp_celsius) OVER (PARTITION BY city) as deviation_from_mean
-FROM temperatures
-''')
-
-print(rel.execute().fetchall())
+-- Calculate cumulative inventory and rate of change
+SELECT
+    product_id,
+    change_time,
+    quantity_change,
+    SUM(quantity_change) OVER (PARTITION BY product_id ORDER BY change_time) as cumulative_inventory,
+    quantity_change - LAG(quantity_change) OVER (PARTITION BY product_id ORDER BY change_time) as inventory_delta
+FROM inventory_log
+''').show()
