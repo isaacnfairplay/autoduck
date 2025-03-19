@@ -1,15 +1,36 @@
-# Generated: 2025-03-19 19:00:47.792272
-# Result: [('Clothing', 2, 100, Decimal('79.50'), Decimal('7950.00')), ('Electronics', 1, 50, Decimal('499.99'), Decimal('47499.25')), ('Electronics', 3, 25, Decimal('899.99'), Decimal('47499.25')), ('Home', 4, 75, Decimal('149.99'), Decimal('11249.25'))]
+# Generated: 2025-03-19 19:01:40.394517
+# Result: [(1, 'click', datetime.datetime(2023, 7, 15, 10, 30), 1), (1, 'purchase', datetime.datetime(2023, 7, 15, 11, 15), 2), (2, 'view', datetime.datetime(2023, 7, 15, 9, 45), 1), (2, 'click', datetime.datetime(2023, 7, 15, 10, 0), 2)]
 # Valid: True
-# Variable transformed_array: Type: list
-# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
 import duckdb
 
+# Connect to in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create numeric array and perform element-wise transformation
-array_data = [1, 2, 3, 4, 5]
-transformed_array = conn.sql('SELECT array_transform([1, 2, 3, 4, 5], x -> x + 10) AS result').fetchone()[0]
+# Create user interactions table
+conn.sql('''
+CREATE TABLE user_interactions (
+    user_id INTEGER,
+    interaction_type VARCHAR,
+    timestamp TIMESTAMP
+);
 
-print(f'Original Array: {array_data}')
-print(f'Transformed Array: {transformed_array}')
+INSERT INTO user_interactions VALUES
+    (1, 'click', '2023-07-15 10:30:00'),
+    (1, 'purchase', '2023-07-15 11:15:00'),
+    (2, 'view', '2023-07-15 09:45:00'),
+    (2, 'click', '2023-07-15 10:00:00');
+''')
+
+# Use window function to rank user interactions
+result = conn.sql('''
+SELECT 
+    user_id, 
+    interaction_type,
+    timestamp,
+    RANK() OVER (PARTITION BY user_id ORDER BY timestamp) as interaction_rank
+FROM user_interactions
+ORDER BY user_id, interaction_rank
+''').fetchall()
+
+for row in result:
+    print(f"User {row[0]}: {row[1]} at {row[2]}, Rank: {row[3]}")
