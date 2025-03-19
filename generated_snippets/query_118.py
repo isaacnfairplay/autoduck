@@ -1,24 +1,14 @@
-# Generated: 2025-03-19 16:09:35.196484
+# Generated: 2025-03-19 16:10:25.271033
 # Result: [([4, 9, 16, 25],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Pivot table to transform rows into columns
-conn.execute("""
-CREATE TABLE sales (
-    product VARCHAR,
-    region VARCHAR,
-    amount DECIMAL
-);
+# Create sample data
+conn.execute('CREATE TABLE numbers (value INTEGER)')
+conn.execute('INSERT INTO numbers VALUES (1), (2), (3), (4), (5)')
 
-INSERT INTO sales VALUES
-    ('Laptop', 'North', 1000),
-    ('Laptop', 'South', 1500),
-    ('Phone', 'North', 800),
-    ('Phone', 'South', 1200);
-
-SELECT * FROM sales
-PIVOT (SUM(amount) FOR region IN ('North', 'South'))
-""").fetchall()
+# Demonstrate relational API pivot method
+rel = conn.table('numbers').select('value')
+print(rel.execute().fetchall())
