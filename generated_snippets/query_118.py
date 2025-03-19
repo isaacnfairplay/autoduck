@@ -1,25 +1,36 @@
-# Generated: 2025-03-19 19:35:08.282323
-# Result: [('2023-01-01', Decimal('1200.50'), 1200.5), ('2023-01-02', Decimal('1350.75'), 1275.625), ('2023-01-03', Decimal('1100.25'), 1217.1666666666667)]
+# Generated: 2025-03-19 19:38:32.778333
+# Result: [('Electronics', Decimal('48696.70'), 89.82666666666667), ('Sports', Decimal('11998.25'), 64.99)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create time series sales data
 conn.execute('''
-CREATE TABLE daily_sales AS
-SELECT '2023-01-01' as sales_date, 1200.50 as revenue
-UNION ALL SELECT '2023-01-02', 1350.75
-UNION ALL SELECT '2023-01-03', 1100.25
+CREATE TABLE product_inventory (
+    product_id INT,
+    product_name VARCHAR,
+    category VARCHAR,
+    stock_quantity INT,
+    unit_price DECIMAL(10,2)
+);
+
+INSERT INTO product_inventory VALUES
+(1, 'Wireless Headphones', 'Electronics', 150, 79.99),
+(2, 'Smart Speaker', 'Electronics', 200, 129.50),
+(3, 'Running Shoes', 'Sports', 100, 89.99),
+(4, 'Yoga Mat', 'Sports', 75, 39.99),
+(5, 'Bluetooth Earbuds', 'Electronics', 180, 59.99);
 ''')
 
-# Calculate 3-day moving average of revenue
+# Calculate total inventory value by category
 result = conn.execute('''
 SELECT 
-    sales_date, 
-    revenue,
-    AVG(revenue) OVER (ORDER BY sales_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as moving_avg
-FROM daily_sales
+    category, 
+    SUM(stock_quantity * unit_price) as total_inventory_value,
+    AVG(unit_price) as average_price
+FROM product_inventory
+GROUP BY category
+ORDER BY total_inventory_value DESC
 ''').fetchall()
 
 print(result)
