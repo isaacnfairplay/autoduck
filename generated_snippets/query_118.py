@@ -1,30 +1,21 @@
-# Generated: 2025-03-19 10:41:49.442946
-# Result: [('Laptop', Decimal('1200.50')), ('Phone', Decimal('800.25')), ('Tablet', Decimal('500.75')), ('Camera', Decimal('1100.00'))]
+# Generated: 2025-03-19 10:45:01.975333
+# Result: [(datetime.date(2024, 1, 1),), (datetime.date(2024, 4, 1),), (datetime.date(2024, 7, 1),), (datetime.date(2024, 10, 1),), (datetime.date(2025, 1, 1),)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create first sales table
-conn.execute('CREATE TABLE sales_2022 (product TEXT, amount DECIMAL(10,2))')
-conn.executemany('INSERT INTO sales_2022 VALUES (?, ?)', [
-    ('Laptop', 1200.50),
-    ('Phone', 800.25)
-])
-
-# Create second sales table
-conn.execute('CREATE TABLE sales_2023 (product TEXT, amount DECIMAL(10,2))')
-conn.executemany('INSERT INTO sales_2023 VALUES (?, ?)', [
-    ('Tablet', 500.75),
-    ('Camera', 1100.00)
-])
-
-# Use UNION ALL to combine results
-result = conn.execute('''
-    SELECT product, amount FROM sales_2022
+# Generate quarterly fiscal date series for 2024
+result = conn.execute("""
+WITH RECURSIVE date_series(fiscal_quarter) AS (
+    SELECT DATE '2024-01-01'
     UNION ALL
-    SELECT product, amount FROM sales_2023
-''').fetchall()
+    SELECT fiscal_quarter + INTERVAL 3 MONTH
+    FROM date_series
+    WHERE fiscal_quarter < DATE '2024-12-31'
+)
+SELECT fiscal_quarter
+FROM date_series
+""").fetchall()
 
-for row in result:
-    print(row)
+print([str(date[0]) for date in result])
