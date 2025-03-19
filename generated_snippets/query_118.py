@@ -1,38 +1,27 @@
-# Generated: 2025-03-19 16:34:48.830792
-# Result: [(1, datetime.datetime(2023, 6, 15, 10, 0), 22.5, 22.5), (1, datetime.datetime(2023, 6, 15, 11, 0), 23.100000381469727, 22.800000190734863), (2, datetime.datetime(2023, 6, 15, 10, 0), 19.799999237060547, 19.799999237060547)]
+# Generated: 2025-03-19 16:36:32.406389
+# Result: [(1, [1, 2, 3], [2, 4, 6], [3]), (2, [4, 5, 6], [8, 10, 12], [4, 5, 6]), (3, [7, 8, 9], [14, 16, 18], [7, 8, 9])]
 # Valid: True
 import duckdb
 
-# Create an in-memory database
+# Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create a table with sensor readings
-conn.execute("""
-CREATE TABLE sensor_data (
-    sensor_id INTEGER,
-    timestamp TIMESTAMP,
-    temperature FLOAT,
-    humidity FLOAT
-);
-""")
-
-# Insert sample sensor data
-conn.executemany("""
-INSERT INTO sensor_data VALUES (?, ?, ?, ?)
-""", [
-    (1, '2023-06-15 10:00:00', 22.5, 45.3),
-    (1, '2023-06-15 11:00:00', 23.1, 46.2),
-    (2, '2023-06-15 10:00:00', 19.8, 55.7)
+# Create array transformation example
+conn.execute('CREATE TABLE arrays (id INTEGER, data INTEGER[])')
+conn.executemany('INSERT INTO arrays VALUES (?, ?)', [
+    (1, [1, 2, 3]),
+    (2, [4, 5, 6]),
+    (3, [7, 8, 9])
 ])
 
-# Perform window function to calculate rolling average temperature
-result = conn.execute("""
-SELECT 
-    sensor_id, 
-    timestamp, 
-    temperature,
-    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as rolling_avg_temp
-FROM sensor_data
-""").fetchall()
+# Transform array using DuckDB functions
+result = conn.execute('''
+    SELECT 
+        id, 
+        data, 
+        array_transform(data, x -> x * 2) as doubled_data,
+        array_filter(data, x -> x > 2) as filtered_data
+    FROM arrays
+''').fetchall()
 
 print(result)
