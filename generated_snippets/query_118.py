@@ -1,23 +1,13 @@
-# Generated: 2025-03-19 14:18:11.601487
-# Result: [('Alice', ['Python', 'SQL', 'Machine Learning']), ('Charlie', ['Python', 'Data Analysis'])]
+# Generated: 2025-03-19 14:19:01.345385
+# Result: [Decimal('90.0'), Decimal('180.0'), Decimal('270.0')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table with employee skills and use array_contains for filtering
-conn.execute('CREATE TABLE employees (name TEXT, skills TEXT[])')
-conn.execute("""INSERT INTO employees VALUES
-    ('Alice', ['Python', 'SQL', 'Machine Learning']),
-    ('Bob', ['Java', 'DevOps']),
-    ('Charlie', ['Python', 'Data Analysis'])
-""")
-
+# Transform fruit prices by applying percentage discount
 result = conn.execute('''
-    SELECT name, skills
-    FROM employees
-    WHERE array_contains(skills, 'Python')
-''').fetchall()
+    SELECT array_transform([100, 200, 300], x -> x * 0.9) AS discounted_prices
+''').fetchone()[0]
 
-for row in result:
-    print(f"Name: {row[0]}, Skills: {row[1]})")
+print(result)  # Output: [90.0, 180.0, 270.0]
