@@ -1,14 +1,12 @@
-# Generated: 2025-03-19 18:07:28.037667
-# Result: [('Electronics', [[1, 2, 3], [6, 7]]), ('Clothing', [[4, 5]])]
+# Generated: 2025-03-19 18:08:17.776693
+# Result: [([20, 40, 60, 80],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table and demonstrate array aggregation
-conn.execute('CREATE TABLE products (category STRING, tags INTEGER[])')
-conn.execute("INSERT INTO products VALUES ('Electronics', [1, 2, 3]), ('Clothing', [4, 5]), ('Electronics', [6, 7])")
+result = conn.execute('''
+    SELECT array_transform([10, 20, 30, 40], x -> x * 2) AS doubled_array
+''').fetchall()
 
-result = conn.execute("SELECT category, array_agg(tags) AS all_tags FROM products GROUP BY category").fetchall()
-
-print(result)
+print(result[0][0])  # Outputs: [20, 40, 60, 80]
