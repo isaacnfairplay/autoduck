@@ -1,34 +1,36 @@
-# Generated: 2025-03-19 11:38:03.427185
-# Result: [(1, datetime.datetime(2023, 7, 1, 10, 0), 22.5, 0.18), (1, datetime.datetime(2023, 7, 1, 11, 0), 23.100000381469727, 0.18), (2, datetime.datetime(2023, 7, 1, 10, 0), 21.700000762939453, None)]
+# Generated: 2025-03-19 11:38:59.765644
+# Result: [(1, 'Calculus', 4), (4, 'Statistics', 3)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sensor monitoring data
+# Create sample courses table
 conn.execute('''
-CREATE TABLE sensor_readings (
-    timestamp TIMESTAMP,
-    sensor_id INTEGER,
-    temperature FLOAT,
-    humidity FLOAT
+CREATE TABLE courses (
+    course_id INTEGER,
+    name VARCHAR,
+    department VARCHAR,
+    credits INTEGER
 );
 
-INSERT INTO sensor_readings VALUES
-('2023-07-01 10:00:00', 1, 22.5, 45.3),
-('2023-07-01 11:00:00', 1, 23.1, 44.8),
-('2023-07-01 10:00:00', 2, 21.7, 46.2);
+INSERT INTO courses VALUES
+(1, 'Calculus', 'Mathematics', 4),
+(2, 'Computer Science', 'CS', 3),
+(3, 'Physics', 'Science', 4),
+(4, 'Statistics', 'Mathematics', 3);
 ''')
 
-# Use window function to calculate sensor variance
+# Select courses by department with advanced filtering
 result = conn.execute('''
-SELECT
-    sensor_id,
-    timestamp,
-    temperature,
-    ROUND(VARIANCE(temperature) OVER (PARTITION BY sensor_id), 2) as temp_variance
-FROM sensor_readings
+SELECT 
+    course_id, 
+    name, 
+    credits
+FROM courses
+WHERE department = 'Mathematics'
+ORDER BY credits DESC
 ''').fetchall()
 
 for row in result:
-    print(f"Sensor {row[0]} at {row[1]}: {row[2]}°C (Variance: {row[3]})")
+    print(f"Course {row[0]}: {row[1]} ({row[2]} credits)")
