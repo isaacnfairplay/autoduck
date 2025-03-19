@@ -1,31 +1,26 @@
-# Generated: 2025-03-19 15:01:20.588321
+# Generated: 2025-03-19 15:02:12.450458
 # Result: <duckdb.duckdb.DuckDBPyConnection object at 0x00000147DE9344F0>
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a table with sensor readings
-conn.execute('''CREATE TABLE sensor_data (
-    sensor_id INTEGER,
-    reading FLOAT,
-    timestamp TIMESTAMP
-)''')
+# Create a sample table and demonstrate complex aggregation
+conn.execute('''CREATE TABLE products (category VARCHAR, price DECIMAL)''')
+conn.execute('''INSERT INTO products VALUES
+    ('Electronics', 500), ('Clothing', 100), 
+    ('Electronics', 750), ('Clothing', 200),
+    ('Electronics', 600)''')
 
-# Insert sample sensor data
-conn.execute('''INSERT INTO sensor_data VALUES
-    (1, 22.5, '2023-07-01 10:00:00'),
-    (1, 23.1, '2023-07-01 10:15:00'),
-    (1, 22.8, '2023-07-01 10:30:00'),
-    (2, 18.6, '2023-07-01 10:00:00'),
-    (2, 19.2, '2023-07-01 10:15:00')''')
+rel = conn.sql('''
+    SELECT 
+        category, 
+        COUNT(*) as product_count,
+        AVG(price) as avg_price,
+        MAX(price) - MIN(price) as price_range
+    FROM products
+    GROUP BY category
+    HAVING COUNT(*) > 1
+''')
 
-# Use window functions to calculate moving average of sensor readings
-result = conn.execute('''SELECT 
-    sensor_id, 
-    reading, 
-    timestamp,
-    AVG(reading) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS moving_avg
-FROM sensor_data''')
-
-print(result.fetchall())
+print(rel.execute().fetchall())
