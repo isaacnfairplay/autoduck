@@ -1,31 +1,29 @@
-# Generated: 2025-03-19 09:43:21.193567
-# Result: [('Electronics', 1, 500.0), ('Clothing', 1, 250.75), ('Books', 1, 100.5)]
+# Generated: 2025-03-19 09:44:12.054283
+# Result: [('Books', 'Textbook', 600, 1), ('Books', 'Novel', 200, 2), ('Electronics', 'Phone', 750, 1), ('Electronics', 'Laptop', 500, 2), ('Clothing', 'Pants', 450, 1), ('Clothing', 'Shirt', 300, 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
 conn.sql("""
-CREATE TABLE transactions (
-    transaction_id INTEGER,
-    product_category VARCHAR,
-    amount DECIMAL(10,2),
-    transaction_date DATE
-);
-
-INSERT INTO transactions VALUES
-    (1, 'Electronics', 500.00, '2023-06-01'),
-    (2, 'Clothing', 250.75, '2023-06-02'),
-    (3, 'Books', 100.50, '2023-06-03')
+CREATE TABLE sales AS
+SELECT * FROM (VALUES
+    ('Electronics', 'Laptop', 500),
+    ('Electronics', 'Phone', 750),
+    ('Clothing', 'Shirt', 300),
+    ('Clothing', 'Pants', 450),
+    ('Books', 'Novel', 200),
+    ('Books', 'Textbook', 600)
+) t(category, product, amount)
 """)
 
 result = conn.sql("""
-SELECT 
-    product_category, 
-    COUNT(*) as transaction_count,
-    AVG(amount) as avg_transaction_value
-FROM transactions
-GROUP BY product_category
+SELECT
+    category,
+    product,
+    amount,
+    RANK() OVER (PARTITION BY category ORDER BY amount DESC) as sales_rank
+FROM sales
 """).fetchall()
 
 print(result)
