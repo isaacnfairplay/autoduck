@@ -1,4 +1,4 @@
-# Generated: 2025-03-19 11:15:15.233628
+# Generated: 2025-03-19 11:16:06.324212
 # Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
 # Valid: True
 import duckdb
@@ -6,24 +6,28 @@ import duckdb
 conn = duckdb.connect(':memory:')
 
 conn.execute('''
-CREATE TABLE orders (
-    order_id INTEGER PRIMARY KEY,
-    customer_id INTEGER,
-    total_amount DECIMAL(10,2),
-    order_date DATE
+CREATE TABLE employees (
+    employee_id INTEGER PRIMARY KEY,
+    name VARCHAR,
+    manager_id INTEGER
 );
 
-INSERT INTO orders VALUES
-    (1, 101, 250.50, '2023-01-15'),
-    (2, 102, 175.25, '2023-02-20'),
-    (3, 101, 300.75, '2023-03-10');
+INSERT INTO employees VALUES
+    (1, 'Alice', NULL),
+    (2, 'Bob', 1),
+    (3, 'Charlie', 1);
 
--- Find customer spending with window functions
-SELECT 
-    customer_id, 
-    total_amount,
-    order_date,
-    SUM(total_amount) OVER (PARTITION BY customer_id) as total_customer_spend,
-    FIRST_VALUE(order_date) OVER (PARTITION BY customer_id ORDER BY order_date) as first_order_date
-FROM orders
+WITH RECURSIVE org_hierarchy AS (
+    SELECT employee_id, name, manager_id, 0 AS level
+    FROM employees
+    WHERE manager_id IS NULL
+
+    UNION ALL
+
+    SELECT e.employee_id, e.name, e.manager_id, h.level + 1
+    FROM employees e
+    JOIN org_hierarchy h ON e.manager_id = h.employee_id
+)
+
+SELECT * FROM org_hierarchy;
 ''').fetchall()
