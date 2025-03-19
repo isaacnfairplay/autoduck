@@ -1,30 +1,33 @@
-# Generated: 2025-03-19 11:53:58.330072
-# Result: [(1, 'Sales', Decimal('55000.00'), 4.5, 0.0, 1), (3, 'Sales', Decimal('58000.00'), 4.699999809265137, 1.0, 2), (4, 'Marketing', Decimal('59000.00'), 3.9000000953674316, 0.0, 1), (2, 'Marketing', Decimal('62000.00'), 4.199999809265137, 1.0, 2)]
+# Generated: 2025-03-19 11:54:51.598122
+# Result: [('Haruki Murakami', 'Kafka on the Shore', 2002)]
 # Valid: True
 import duckdb
 
 # Create an in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create a table with employee performance data
-conn.execute('CREATE TABLE employees (id INT, department TEXT, salary DECIMAL(10,2), performance_score FLOAT)')
-conn.executemany('INSERT INTO employees VALUES (?, ?, ?, ?)', [
-    (1, 'Sales', 55000.00, 4.5),
-    (2, 'Marketing', 62000.00, 4.2),
-    (3, 'Sales', 58000.00, 4.7),
-    (4, 'Marketing', 59000.00, 3.9)
+# Create authors table
+conn.execute('CREATE TABLE authors (author_id INT PRIMARY KEY, name TEXT, country TEXT)')
+conn.executemany('INSERT INTO authors VALUES (?, ?, ?)', [
+    (1, 'Haruki Murakami', 'Japan'),
+    (2, 'Chimamanda Ngozi Adichie', 'Nigeria'),
+    (3, 'Kazuo Ishiguro', 'United Kingdom')
 ])
 
-# Use window functions to calculate percentile rank within departments
+# Create books table with foreign key relationship
+conn.execute('CREATE TABLE books (book_id INT PRIMARY KEY, title TEXT, author_id INT, publication_year INT, FOREIGN KEY(author_id) REFERENCES authors(author_id))')
+conn.executemany('INSERT INTO books VALUES (?, ?, ?, ?)', [
+    (101, 'Kafka on the Shore', 1, 2002),
+    (102, 'Norwegian Wood', 1, 1987),
+    (103, 'Americanah', 2, 2013),
+    (104, 'Never Let Me Go', 3, 2005)
+])
+
+# Demonstrate join and filtering
 result = conn.execute('''
-    SELECT 
-        id, 
-        department, 
-        salary, 
-        performance_score,
-        PERCENT_RANK() OVER (PARTITION BY department ORDER BY performance_score) as perf_percentile,
-        NTILE(4) OVER (PARTITION BY department ORDER BY salary) as salary_quartile
-    FROM employees
+    SELECT a.name, b.title, b.publication_year
+    FROM authors a JOIN books b ON a.author_id = b.author_id
+    WHERE a.country = 'Japan' AND b.publication_year > 1990
 ''').fetchall()
 
 print(result)
