@@ -1,39 +1,35 @@
-# Generated: 2025-03-19 12:16:55.853450
-# Result: [('Sales', 'Bob', Decimal('60000.00'), 1), ('Engineering', 'David', Decimal('80000.00'), 1)]
+# Generated: 2025-03-19 12:17:50.125377
+# Result: [(1, datetime.date(2023, 1, 15), 5, Decimal('50.00'), Decimal('250.00')), (1, datetime.date(2023, 2, 20), 3, Decimal('52.50'), Decimal('407.50')), (2, datetime.date(2023, 1, 10), 7, Decimal('25.00'), Decimal('175.00')), (2, datetime.date(2023, 3, 5), 4, Decimal('27.50'), Decimal('285.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sample employees table
+# Create product sales table
 conn.execute('''
-CREATE TABLE employees (
-    department VARCHAR,
-    name VARCHAR,
-    salary DECIMAL(10,2)
+CREATE TABLE product_sales (
+    product_id INT,
+    sale_date DATE,
+    quantity INT,
+    price DECIMAL(10,2)
 );
 
-INSERT INTO employees VALUES
-    ('Sales', 'Alice', 55000),
-    ('Sales', 'Bob', 60000),
-    ('Engineering', 'Charlie', 75000),
-    ('Engineering', 'David', 80000),
-    ('HR', 'Eve', 50000);
+INSERT INTO product_sales VALUES
+    (1, '2023-01-15', 5, 50.00),
+    (1, '2023-02-20', 3, 52.50),
+    (2, '2023-01-10', 7, 25.00),
+    (2, '2023-03-05', 4, 27.50);
 ''')
 
-# Correlated subquery with window function ranking
+# Demonstrate window function for cumulative sales tracking
 result = conn.execute('''
-SELECT
-    department,
-    name,
-    salary,
-    RANK() OVER (PARTITION BY department ORDER BY salary DESC) as dept_salary_rank
-FROM employees e1
-WHERE salary > (
-    SELECT AVG(salary) 
-    FROM employees e2 
-    WHERE e2.department = e1.department
-)
+SELECT 
+    product_id, 
+    sale_date, 
+    quantity, 
+    price,
+    SUM(quantity * price) OVER (PARTITION BY product_id ORDER BY sale_date) as cumulative_revenue
+FROM product_sales
 ''').fetchall()
 
 for row in result:
