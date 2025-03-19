@@ -1,29 +1,18 @@
-# Generated: 2025-03-19 12:29:14.248092
-# Result: [('Pants', Decimal('75.00'))]
+# Generated: 2025-03-19 12:30:09.496385
+# Result: [('Electronics', 'Laptop', Decimal('1200.00')), ('Furniture', 'Chair', Decimal('250.50'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create clothing products table
-conn.execute('''
-CREATE TABLE clothing (
-    category VARCHAR,
-    product VARCHAR,
-    price DECIMAL(10,2)
-);
-
-INSERT INTO clothing VALUES
-    ('Clothing', 'Shirt', 50),
-    ('Clothing', 'Pants', 75),
-    ('Clothing', 'Jacket', 120);
-''')
-
-# Query clothing items matching task criteria
+# Create dynamic sales data from VALUES clause
 result = conn.execute('''
-SELECT product, price
-FROM clothing
-WHERE category = 'Clothing' AND product = 'Pants'
+SELECT * FROM (VALUES
+    ('Electronics', 'Laptop', 1200.00),
+    ('Clothing', 'Shirt', 50.00),
+    ('Furniture', 'Chair', 250.50)
+) AS t(category, product, amount)
+WHERE amount > 100
 ''').fetchall()
 
 for row in result:
