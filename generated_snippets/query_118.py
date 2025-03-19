@@ -1,38 +1,31 @@
-# Generated: 2025-03-19 13:07:36.122673
-# Result: [(1, datetime.datetime(2023, 1, 1, 10, 15), 22.5, 22.5), (1, datetime.datetime(2023, 1, 1, 10, 20), 23.100000381469727, 22.800000190734863), (1, datetime.datetime(2023, 1, 1, 10, 25), 22.799999237060547, 22.949999809265137), (2, datetime.datetime(2023, 1, 1, 10, 15), 24.0, 24.0)]
+# Generated: 2025-03-19 13:08:28.283314
+# Result: [(1, 'view', datetime.datetime(2023, 6, 15, 10, 15), None), (1, 'click', datetime.datetime(2023, 6, 15, 10, 16), 'view'), (2, 'view', datetime.datetime(2023, 6, 15, 11, 20), None), (2, 'purchase', datetime.datetime(2023, 6, 15, 11, 22), 'view')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create temporal data for complex time-based query
-conn.execute('''
-CREATE TABLE events (
-    event_time TIMESTAMP,
-    sensor_id INTEGER,
-    temperature FLOAT
+# Create and populate a table of user interactions
+conn.execute('''CREATE TABLE interactions (
+    user_id INT,
+    interaction_type VARCHAR,
+    timestamp TIMESTAMP
 )''')
 
-conn.execute('''
-INSERT INTO events VALUES
-    ('2023-01-01 10:15:00', 1, 22.5),
-    ('2023-01-01 10:20:00', 1, 23.1),
-    ('2023-01-01 10:25:00', 1, 22.8),
-    ('2023-01-01 10:15:00', 2, 24.0)
+conn.execute('''INSERT INTO interactions VALUES
+    (1, 'view', '2023-06-15 10:15:00'),
+    (1, 'click', '2023-06-15 10:16:00'),
+    (2, 'view', '2023-06-15 11:20:00'),
+    (2, 'purchase', '2023-06-15 11:22:00')
 ''')
 
-# Demonstrate time-based window function with moving average
-result = conn.execute('''
-SELECT 
-    sensor_id, 
-    event_time,
-    temperature,
-    AVG(temperature) OVER (
-        PARTITION BY sensor_id 
-        ORDER BY event_time 
-        ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
-    ) as rolling_temp
-FROM events
+# Demonstrate consecutive event tracking using window functions
+result = conn.execute('''SELECT
+    user_id,
+    interaction_type,
+    timestamp,
+    LAG(interaction_type) OVER (PARTITION BY user_id ORDER BY timestamp) as prev_interaction
+FROM interactions
 ''').fetchall()
 
 for row in result:
