@@ -1,12 +1,13 @@
-# Generated: 2025-03-19 16:01:06.590089
+# Generated: 2025-03-19 16:01:59.452212
 # Result: [([1, 4, 9, 16, 25],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-result = conn.execute('''
-    SELECT array_transform([1, 2, 3, 4, 5], x -> x * x) as squared_array
-''').fetchall()
+# Transform numeric array by squaring each element
+result = conn.execute("""
+    SELECT array_transform([1, 2, 3, 4, 5], x -> x * x) AS squared_values
+""").fetchall()
 
-print(result[0][0])
+print(result)  # Expected: [[1, 4, 9, 16, 25]]
