@@ -1,40 +1,30 @@
-# Generated: 2025-03-19 12:23:10.478352
-# Result: [('A', 'D', 'A->D', 2), ('A', 'D', 'A->D', 6), ('A', 'D', 'A->C->D', 5)]
+# Generated: 2025-03-19 12:24:03.471662
+# Result: [(1, 'Wireless Headphones', 'Electronics', Decimal('129.99'), Decimal('80.50'), datetime.date(2022, 11, 15), True, Decimal('38.07')), (2, 'Smart Watch', 'Wearables', Decimal('199.50'), Decimal('120.75'), datetime.date(2023, 1, 20), True, Decimal('39.47')), (3, 'Ergonomic Keyboard', 'Computer Accessories', Decimal('89.99'), Decimal('45.25'), datetime.date(2022, 9, 10), True, Decimal('49.72'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create graph network for path finding
-conn.execute('''CREATE TABLE connections (
-    start_node VARCHAR,
-    end_node VARCHAR,
-    distance INT
-);''')
-
+# Create product sales table with advanced attributes
 conn.execute('''
-INSERT INTO connections VALUES
-    ('A', 'B', 5),
-    ('B', 'C', 3),
-    ('A', 'C', 8),
-    ('C', 'D', 2),
-    ('B', 'D', 6)
+CREATE TABLE product_sales (
+    product_id INT PRIMARY KEY,
+    product_name VARCHAR,
+    category VARCHAR,
+    list_price DECIMAL(10,2),
+    cost_price DECIMAL(10,2),
+    launch_date DATE,
+    is_active BOOLEAN DEFAULT TRUE,
+    profit_margin DECIMAL(5,2) GENERATED ALWAYS AS ((list_price - cost_price) / list_price * 100)
+);
+
+INSERT INTO product_sales (product_id, product_name, category, list_price, cost_price, launch_date) VALUES
+    (1, 'Wireless Headphones', 'Electronics', 129.99, 80.50, '2022-11-15'),
+    (2, 'Smart Watch', 'Wearables', 199.50, 120.75, '2023-01-20'),
+    (3, 'Ergonomic Keyboard', 'Computer Accessories', 89.99, 45.25, '2022-09-10');
 ''')
 
-# Recursive query to find all possible paths
-result = conn.execute('''
-WITH RECURSIVE path_finder(start_node, end_node, path, total_distance) AS (
-    SELECT start_node, end_node, start_node, 0
-    FROM connections
-    UNION ALL
-    SELECT p.start_node, c.end_node, p.path || '->' || c.end_node, p.total_distance + c.distance
-    FROM path_finder p
-    JOIN connections c ON p.end_node = c.start_node
-    WHERE c.end_node NOT LIKE '%' || p.path || '%'
-)
-SELECT * FROM path_finder
-WHERE start_node = 'A' AND end_node = 'D'
-''').fetchall()
-
+# Verify table creation
+result = conn.execute('SELECT * FROM product_sales').fetchall()
 for row in result:
     print(row)
