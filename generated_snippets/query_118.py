@@ -1,35 +1,36 @@
-# Generated: 2025-03-19 18:34:56.282776
-# Result: [(1, datetime.date(2023, 1, 15), Decimal('150.50'), Decimal('150.50')), (1, datetime.date(2023, 2, 20), Decimal('200.75'), Decimal('351.25')), (2, datetime.date(2023, 1, 10), Decimal('100.25'), Decimal('100.25')), (2, datetime.date(2023, 3, 5), Decimal('175.80'), Decimal('276.05'))]
+# Generated: 2025-03-19 18:35:48.354538
+# Result: [('Electronics', 3, 716.9166666666666)]
 # Valid: True
 import duckdb
 
-# Create an in-memory connection
+# Create an in-memory database connection
 conn = duckdb.connect(':memory:')
 
-# Create a sample sales table
+# Create a sample products table
 conn.execute('''
-    CREATE TABLE sales (
-        product_id INTEGER,
-        sale_date DATE,
-        amount DECIMAL(10,2)
+    CREATE TABLE products (
+        product_id INTEGER PRIMARY KEY,
+        product_name VARCHAR,
+        category VARCHAR,
+        price DECIMAL(10,2)
     );
 
-    INSERT INTO sales VALUES
-        (1, '2023-01-15', 150.50),
-        (1, '2023-02-20', 200.75),
-        (2, '2023-01-10', 100.25),
-        (2, '2023-03-05', 175.80)
+    INSERT INTO products VALUES
+        (1, 'Laptop', 'Electronics', 1200.00),
+        (2, 'Smartphone', 'Electronics', 800.50),
+        (3, 'Headphones', 'Electronics', 150.25)
 ''');
 
-# Use window function to calculate cumulative sales per product
+# Demonstrate aggregate and filtering capabilities
 result = conn.execute('''
     SELECT 
-        product_id, 
-        sale_date, 
-        amount,
-        SUM(amount) OVER (PARTITION BY product_id ORDER BY sale_date) as cumulative_sales
-    FROM sales
+        category, 
+        COUNT(*) as product_count,
+        AVG(price) as avg_price
+    FROM products
+    WHERE category = 'Electronics'
+    GROUP BY category
 ''').fetchall()
 
 for row in result:
-    print(row)
+    print(f"Category: {row[0]}, Products: {row[1]}, Average Price: ${row[2]:.2f}")
