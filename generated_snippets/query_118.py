@@ -1,28 +1,31 @@
-# Generated: 2025-03-19 14:56:09.026064
-# Result: [('Alice', 28, 'Middle-aged'), ('Diana', 22, 'Young')]
+# Generated: 2025-03-19 14:57:03.960823
+# Result: [('Tablet', 30, 0.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and query a people table with complex age-based filtering
-conn.execute('''CREATE TABLE people (name VARCHAR, age INTEGER, city VARCHAR)''')
-conn.execute('''INSERT INTO people VALUES 
-    ('Alice', 28, 'New York'), 
-    ('Bob', 35, 'San Francisco'), 
-    ('Charlie', 42, 'Chicago'), 
-    ('Diana', 22, 'Boston')''')
+# Create a table of product inventory
+conn.execute('''CREATE TABLE inventory (
+    product_id INTEGER,
+    product_name VARCHAR,
+    stock_quantity INTEGER,
+    last_restock_date DATE
+)''')
 
-result = conn.execute('''
-    SELECT name, age, 
-           CASE 
-               WHEN age < 25 THEN 'Young' 
-               WHEN age BETWEEN 25 AND 40 THEN 'Middle-aged' 
-               ELSE 'Senior' 
-           END as age_group
-    FROM people
-    WHERE city IN ('New York', 'Boston') AND age > 20
-    ORDER BY age DESC
-''').fetchall()
+# Insert sample data
+conn.execute('''INSERT INTO inventory VALUES
+    (1, 'Laptop', 50, '2023-06-15'),
+    (2, 'Smartphone', 75, '2023-05-20'),
+    (3, 'Tablet', 30, '2023-04-10')''')
+
+# Query to find low stock products using window function
+result = conn.execute('''SELECT 
+    product_name, 
+    stock_quantity,
+    PERCENT_RANK() OVER (ORDER BY stock_quantity) as stock_percentile
+FROM inventory
+WHERE stock_quantity < 50
+ORDER BY stock_percentile''').fetchall()
 
 print(result)
