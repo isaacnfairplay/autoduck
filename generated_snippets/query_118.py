@@ -1,33 +1,30 @@
-# Generated: 2025-03-19 11:47:49.494782
-# Result: [(1, datetime.datetime(2023, 7, 1, 10, 0), 22.5, 22.5), (1, datetime.datetime(2023, 7, 1, 11, 0), 23.100000381469727, 22.800000190734863), (1, datetime.datetime(2023, 7, 1, 12, 0), 23.799999237060547, 23.449999809265137)]
+# Generated: 2025-03-19 11:48:41.936411
+# Result: [('Electronics', 1500, 39.473684210526315), ('Electronics', 2300, 60.526315789473685), ('Clothing', 1000, 36.36363636363637), ('Clothing', 1750, 63.63636363636363)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a simple time series of temperature readings
+# Create sales data table
 conn.execute('''
-CREATE TABLE temperature_readings (
-    timestamp TIMESTAMP,
-    sensor_id INTEGER,
-    temperature FLOAT
-);
-
-INSERT INTO temperature_readings VALUES
-('2023-07-01 10:00:00', 1, 22.5),
-('2023-07-01 11:00:00', 1, 23.1),
-('2023-07-01 12:00:00', 1, 23.8);
+CREATE TABLE sales AS
+SELECT 'Electronics' as category, 1500 as amount
+UNION ALL
+SELECT 'Electronics', 2300
+UNION ALL
+SELECT 'Clothing', 1000
+UNION ALL
+SELECT 'Clothing', 1750
 ''')
 
-# Calculate moving average with window function
+# Calculate percentage of total sales within each category
 result = conn.execute('''
 SELECT 
-    sensor_id, 
-    timestamp, 
-    temperature,
-    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg
-FROM temperature_readings
+    category, 
+    amount,
+    amount * 100.0 / SUM(amount) OVER (PARTITION BY category) as category_percentage
+FROM sales
 ''').fetchall()
 
 for row in result:
-    print(f"Sensor {row[0]} at {row[1]}: {row[2]}°C (Moving Avg: {row[3]:.2f}°C)")
+    print(f"Category: {row[0]}, Amount: {row[1]}, Percentage: {row[2]:.2f}%")
