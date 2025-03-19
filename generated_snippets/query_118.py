@@ -1,35 +1,33 @@
-# Generated: 2025-03-19 08:18:48.346033
-# Result: [(1, datetime.date(2023, 2, 20), Decimal('350.75'), Decimal('601.25'), 1), (2, datetime.date(2023, 3, 5), Decimal('275.00'), Decimal('450.25'), 2), (1, datetime.date(2023, 1, 15), Decimal('250.50'), Decimal('250.50'), 3), (2, datetime.date(2023, 1, 10), Decimal('175.25'), Decimal('175.25'), 4)]
+# Generated: 2025-03-19 08:19:40.976092
+# Result: [(1, datetime.datetime(2023, 7, 15, 10, 0), Decimal('22.50'), 22.5), (1, datetime.datetime(2023, 7, 15, 11, 0), Decimal('23.10'), 22.8), (2, datetime.datetime(2023, 7, 15, 10, 0), Decimal('21.80'), 21.8)]
 # Valid: True
 import duckdb
 
 # Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create customer order table
+# Create sensor temperature dataset with temporal data
 conn.execute('''
-CREATE TABLE customer_orders (
-    customer_id INTEGER,
-    order_date DATE,
-    order_amount DECIMAL(10,2)
+CREATE TABLE sensor_readings (
+    sensor_id INTEGER,
+    timestamp TIMESTAMP,
+    temperature DECIMAL(5,2)
 );
 
-INSERT INTO customer_orders VALUES
-    (1, '2023-01-15', 250.50),
-    (1, '2023-02-20', 350.75),
-    (2, '2023-01-10', 175.25),
-    (2, '2023-03-05', 275.00);
+INSERT INTO sensor_readings VALUES
+    (1, '2023-07-15 10:00:00', 22.5),
+    (1, '2023-07-15 11:00:00', 23.1),
+    (2, '2023-07-15 10:00:00', 21.8);
 ''')
 
-# Apply window functions for cumulative and ranked analysis
+# Analyze temperature trends with window functions
 result = conn.execute('''
 SELECT
-    customer_id,
-    order_date,
-    order_amount,
-    SUM(order_amount) OVER (PARTITION BY customer_id ORDER BY order_date) as cumulative_spend,
-    RANK() OVER (ORDER BY order_amount DESC) as order_rank
-FROM customer_orders
+    sensor_id,
+    timestamp,
+    temperature,
+    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as rolling_avg
+FROM sensor_readings
 ''').fetchall()
 
 for row in result:
