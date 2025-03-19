@@ -1,11 +1,11 @@
-# Generated: 2025-03-19 12:26:36.573081
+# Generated: 2025-03-19 12:27:28.363787
 # Result: [('Phone', Decimal('800.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create electronics table with task data
+# Create electronics table
 conn.execute('''
 CREATE TABLE electronics (
     category VARCHAR,
@@ -19,7 +19,7 @@ INSERT INTO electronics VALUES
     ('Electronics', 'Tablet', 500);
 ''')
 
-# Query products matching specific criteria
+# Filter products matching price criteria
 result = conn.execute('''
 SELECT product, price
 FROM electronics
