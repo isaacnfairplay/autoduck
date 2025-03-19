@@ -1,26 +1,28 @@
-# Generated: 2025-03-19 15:02:12.450458
-# Result: <duckdb.duckdb.DuckDBPyConnection object at 0x00000147DE9344F0>
+# Generated: 2025-03-19 15:03:03.770673
+# Result: []
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sample table and demonstrate complex aggregation
-conn.execute('''CREATE TABLE products (category VARCHAR, price DECIMAL)''')
-conn.execute('''INSERT INTO products VALUES
-    ('Electronics', 500), ('Clothing', 100), 
-    ('Electronics', 750), ('Clothing', 200),
-    ('Electronics', 600)''')
+# Create and query temporal data using date functions
+conn.execute('''CREATE TABLE events (
+    event_name VARCHAR,
+    event_date DATE
+)''')
 
-rel = conn.sql('''
-    SELECT 
-        category, 
-        COUNT(*) as product_count,
-        AVG(price) as avg_price,
-        MAX(price) - MIN(price) as price_range
-    FROM products
-    GROUP BY category
-    HAVING COUNT(*) > 1
-''')
+conn.execute('''INSERT INTO events VALUES
+    ('Conference', '2023-07-15'),
+    ('Workshop', '2023-08-20'),
+    ('Seminar', '2024-01-10')''')
 
-print(rel.execute().fetchall())
+result = conn.execute('''SELECT 
+    event_name, 
+    event_date, 
+    DATE_TRUNC('month', event_date) as month_start,
+    DATEDIFF('day', CURRENT_DATE, event_date) as days_until_event
+FROM events
+WHERE event_date > CURRENT_DATE
+ORDER BY days_until_event''').fetchall()
+
+print(result)
