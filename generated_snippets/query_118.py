@@ -1,31 +1,39 @@
-# Generated: 2025-03-19 09:23:50.836516
-# Result: [(102, datetime.date(2023, 1, 10), Decimal('350.25'), 1), (102, datetime.date(2023, 3, 5), Decimal('175.00'), 2), (101, datetime.date(2023, 1, 15), Decimal('250.50'), 1), (101, datetime.date(2023, 2, 20), Decimal('125.75'), 2)]
+# Generated: 2025-03-19 09:25:54.984506
+# Result: [(1, 'Electronics', Decimal('1200.50'), 1.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
-conn.execute('''
-    CREATE TABLE orders (
-        order_id INTEGER,
-        customer_id INTEGER,
-        total_amount DECIMAL(10,2),
-        order_date DATE
-    );
 
-    INSERT INTO orders VALUES
-    (1, 101, 250.50, '2023-01-15'),
-    (2, 101, 125.75, '2023-02-20'),
-    (3, 102, 350.25, '2023-01-10'),
-    (4, 102, 175.00, '2023-03-05');
+# Create a table with sales data
+conn.execute('''
+CREATE TABLE sales (
+    product_id INTEGER,
+    category VARCHAR,
+    sale_amount DECIMAL(10,2),
+    sale_date DATE
+);
+
+INSERT INTO sales VALUES
+(1, 'Electronics', 1200.50, '2023-01-15'),
+(2, 'Electronics', 800.25, '2023-02-20'),
+(3, 'Sports', 350.00, '2023-03-10'),
+(4, 'Sports', 250.75, '2023-04-05');
 ''')
 
+# Advanced filtering using window functions and subqueries
 result = conn.execute('''
+WITH ranked_sales AS (
     SELECT 
-        customer_id, 
-        order_date, 
-        total_amount,
-        DENSE_RANK() OVER (PARTITION BY customer_id ORDER BY total_amount DESC) as order_rank
-    FROM orders
+        product_id, 
+        category, 
+        sale_amount,
+        PERCENT_RANK() OVER (PARTITION BY category ORDER BY sale_amount) as percentile_rank
+    FROM sales
+)
+SELECT * FROM ranked_sales
+WHERE percentile_rank > 0.5
+    AND category = 'Electronics'
 ''').fetchall()
 
 print(result)
