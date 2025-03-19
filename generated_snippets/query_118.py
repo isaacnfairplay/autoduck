@@ -1,13 +1,35 @@
-# Generated: 2025-03-19 15:55:12.135387
-# Result: [([1, 4, 9, 16, 25],)]
+# Generated: 2025-03-19 15:56:55.547798
+# Result: []
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Square numeric array values using array_transform
+# Create table of product inventory with stock levels
+conn.execute('''
+    CREATE TABLE inventory (
+        product_id INTEGER,
+        product_name VARCHAR,
+        stock_level INTEGER,
+        reorder_point INTEGER
+    );
+
+    INSERT INTO inventory VALUES
+        (1, 'Laptop', 50, 25),
+        (2, 'Smartphone', 30, 20),
+        (3, 'Tablet', 15, 10)
+''')
+
+# Find products below reorder point using window ranking
 result = conn.execute('''
-    SELECT array_transform([1, 2, 3, 4, 5], x -> x * x) as squared_numbers
+    SELECT 
+        product_name, 
+        stock_level,
+        reorder_point,
+        RANK() OVER (ORDER BY stock_level) as stock_rank
+    FROM inventory
+    WHERE stock_level < reorder_point
 ''').fetchall()
 
-print(result[0][0])  # Outputs: [1, 4, 9, 16, 25]
+for row in result:
+    print(f"Product: {row[0]}, Stock: {row[1]}, Reorder Point: {row[2]}, Rank: {row[3]}")
