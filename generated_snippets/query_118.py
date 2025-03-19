@@ -1,33 +1,30 @@
-# Generated: 2025-03-19 12:43:15.616574
-# Result: [(1, 'Electronics', Decimal('50000.00'), 1, 47500.0), (2, 'Electronics', Decimal('45000.00'), 2, 47500.0), (4, 'Clothing', Decimal('35000.00'), 1, 32500.0), (3, 'Clothing', Decimal('30000.00'), 2, 32500.0)]
+# Generated: 2025-03-19 12:44:14.362837
+# Result: [('B', 220, '2023-03-01', 1), ('B', 180, '2023-02-01', 2), ('A', 200, '2023-02-01', 1), ('A', 150, '2023-03-01', 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
+# Create sample sales data
 conn.execute('''
-CREATE TABLE products (
-    product_id INT,
-    category VARCHAR,
-    sales DECIMAL(10,2)
-);
+CREATE TABLE sales AS
+SELECT * FROM (VALUES
+    ('A', 100, '2023-01-01'),
+    ('A', 200, '2023-02-01'),
+    ('A', 150, '2023-03-01'),
+    ('B', 120, '2023-01-01'),
+    ('B', 180, '2023-02-01'),
+    ('B', 220, '2023-03-01')
+) AS t(region, amount, date);
+'''
+)
 
-INSERT INTO products VALUES
-    (1, 'Electronics', 50000),
-    (2, 'Electronics', 45000),
-    (3, 'Clothing', 30000),
-    (4, 'Clothing', 35000);
-''')
-
+# Use QUALIFY to filter top 2 sales per region
 result = conn.execute('''
-SELECT
-    product_id,
-    category,
-    sales,
-    RANK() OVER (PARTITION BY category ORDER BY sales DESC) as category_rank,
-    (SELECT AVG(sales) FROM products p2 WHERE p2.category = p1.category) as category_avg_sales
-FROM products p1
+SELECT region, amount, date,
+       RANK() OVER (PARTITION BY region ORDER BY amount DESC) as sales_rank
+FROM sales
+QUALIFY sales_rank <= 2
 ''').fetchall()
 
-for row in result:
-    print(row)
+print(result)
