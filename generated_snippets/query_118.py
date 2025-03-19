@@ -1,37 +1,37 @@
-# Generated: 2025-03-19 16:25:52.358765
-# Result: [('Laptop', 'South', Decimal('1500.000'), Decimal('3600.000'), 1), ('Phone', 'South', Decimal('1200.000'), Decimal('2100.000'), 2), ('Tablet', 'South', Decimal('900.000'), Decimal('900.000'), 3), ('Laptop', 'North', Decimal('1000.000'), Decimal('2400.000'), 1), ('Phone', 'North', Decimal('800.000'), Decimal('1400.000'), 2), ('Tablet', 'North', Decimal('600.000'), Decimal('600.000'), 3)]
+# Generated: 2025-03-19 16:26:52.357585
+# Result: [(datetime.date(2023, 1, 1), 'GOOGL', Decimal('100.50'), 100.5), (datetime.date(2023, 1, 2), 'GOOGL', Decimal('102.25'), 101.375), (datetime.date(2023, 1, 1), 'AAPL', Decimal('150.25'), 150.25), (datetime.date(2023, 1, 2), 'AAPL', Decimal('152.50'), 151.375), (datetime.date(2023, 1, 3), 'AAPL', Decimal('149.75'), 151.125)]
 # Valid: True
 import duckdb
 
-# Create a connection
+# Create an in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Create sample sales data with window functions
+# Create a table with time series data
 conn.execute('''
-CREATE TABLE sales (
-    product VARCHAR,
-    region VARCHAR,
-    sales_amount DECIMAL
+CREATE TABLE stock_prices (
+    date DATE,
+    symbol VARCHAR,
+    price DECIMAL(10,2),
+    volume INTEGER
 );
 
-INSERT INTO sales VALUES
-    ('Laptop', 'North', 1000),
-    ('Laptop', 'South', 1500),
-    ('Phone', 'North', 800),
-    ('Phone', 'South', 1200),
-    ('Tablet', 'North', 600),
-    ('Tablet', 'South', 900);
-''')
+INSERT INTO stock_prices VALUES
+    ('2023-01-01', 'AAPL', 150.25, 1000000),
+    ('2023-01-02', 'AAPL', 152.50, 1200000),
+    ('2023-01-03', 'AAPL', 149.75, 900000),
+    ('2023-01-01', 'GOOGL', 100.50, 500000),
+    ('2023-01-02', 'GOOGL', 102.25, 550000);
+'''
+)
 
-# Calculate cumulative sales and rank products within each region
+# Calculate 2-day moving average of stock prices
 result = conn.execute('''
 SELECT 
-    product, 
-    region, 
-    sales_amount,
-    SUM(sales_amount) OVER (PARTITION BY region ORDER BY sales_amount) as cumulative_sales,
-    RANK() OVER (PARTITION BY region ORDER BY sales_amount DESC) as product_rank
-FROM sales
+    date, 
+    symbol, 
+    price,
+    AVG(price) OVER (PARTITION BY symbol ORDER BY date ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg
+FROM stock_prices
 ''').fetchall()
 
 for row in result:
