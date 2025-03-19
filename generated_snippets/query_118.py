@@ -1,34 +1,35 @@
-# Generated: 2025-03-19 12:19:40.223717
-# Result: [(1, datetime.datetime(2023, 6, 1, 10, 0), Decimal('22.50'), 22.5), (1, datetime.datetime(2023, 6, 1, 11, 0), Decimal('23.10'), 22.8), (2, datetime.datetime(2023, 6, 1, 10, 0), Decimal('21.80'), 21.8), (2, datetime.datetime(2023, 6, 1, 11, 0), Decimal('22.30'), 22.05)]
+# Generated: 2025-03-19 12:20:31.692286
+# Result: [('North', 'Laptop', Decimal('50000.00')), ('North', 'Tablet', Decimal('25000.00')), ('North', None, Decimal('75000.00')), ('South', 'Laptop', Decimal('45000.00')), ('South', 'Smartphone', Decimal('60000.00')), ('South', None, Decimal('105000.00')), (None, None, Decimal('180000.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate a time series sensor data table
-conn.execute('''CREATE TABLE sensor_readings (
-    sensor_id INT,
-    timestamp TIMESTAMP,
-    temperature DECIMAL(5,2),
-    humidity DECIMAL(5,2)
-);''')
-
+# Create geographic sales data table
 conn.execute('''
-INSERT INTO sensor_readings VALUES
-    (1, '2023-06-01 10:00:00', 22.5, 45.3),
-    (1, '2023-06-01 11:00:00', 23.1, 46.2),
-    (2, '2023-06-01 10:00:00', 21.8, 44.7),
-    (2, '2023-06-01 11:00:00', 22.3, 45.5)
-''')
+CREATE TABLE regional_sales (
+    region VARCHAR,
+    product VARCHAR,
+    sales_amount DECIMAL(10,2)
+);
 
-# Perform time-based moving average with window function
+INSERT INTO regional_sales VALUES
+    ('North', 'Laptop', 50000.00),
+    ('North', 'Tablet', 25000.00),
+    ('South', 'Laptop', 45000.00),
+    ('South', 'Smartphone', 60000.00);
+'''
+)
+
+# Perform complex ROLLUP aggregation
 result = conn.execute('''
-SELECT
-    sensor_id,
-    timestamp,
-    temperature,
-    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg_temp
-FROM sensor_readings
+SELECT 
+    region, 
+    product, 
+    SUM(sales_amount) as total_sales
+FROM regional_sales
+GROUP BY ROLLUP(region, product)
+ORDER BY region, product
 ''').fetchall()
 
 for row in result:
