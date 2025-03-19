@@ -1,28 +1,37 @@
-# Generated: 2025-03-19 16:41:50.880886
-# Result: [(1, 10.5), (2, 20.100000381469727)]
+# Generated: 2025-03-19 16:46:11.206913
+# Result: [(1, datetime.date(2023, 1, 15), 5, 5, 10.5), (1, datetime.date(2023, 3, 10), 7, 12, 10.5), (2, datetime.date(2023, 2, 20), 3, 3, 25.75)]
 # Valid: True
 import duckdb
 
+# Create an in-memory database connection
 conn = duckdb.connect(':memory:')
 
-# Create sample table
-conn.execute('''CREATE TABLE measurements (
-    group_id INTEGER,
-    value FLOAT
-)''')
+# Create a sample sales table
+conn.execute('''
+    CREATE TABLE sales (
+        product_id INT,
+        sale_date DATE,
+        quantity INT,
+        price DECIMAL(10,2)
+    );
+''')
 
 # Insert sample data
-conn.executemany('INSERT INTO measurements VALUES (?, ?)', [
-    (1, 10.5), (1, 15.2), (1, 8.7),
-    (2, 20.1), (2, 22.3), (2, 18.9)
+conn.executemany('INSERT INTO sales VALUES (?, ?, ?, ?)', [
+    (1, '2023-01-15', 5, 10.50),
+    (2, '2023-02-20', 3, 25.75),
+    (1, '2023-03-10', 7, 10.50)
 ])
 
-# Custom aggregation using percentile_cont
-result = conn.execute('''SELECT 
-    group_id, 
-    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY value) as median_value
-FROM measurements
-GROUP BY group_id
+# Perform a window function analysis
+result = conn.execute('''
+    SELECT 
+        product_id, 
+        sale_date, 
+        quantity,
+        SUM(quantity) OVER (PARTITION BY product_id ORDER BY sale_date) as cumulative_quantity,
+        AVG(price) OVER (PARTITION BY product_id) as avg_product_price
+    FROM sales
 ''').fetchall()
 
 print(result)
