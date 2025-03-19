@@ -1,29 +1,29 @@
-# Generated: 2025-03-19 09:15:04.973770
-# Result: [('West', 'Laptop', datetime.date(2023, 8, 1), Decimal('1200.50'), 1, Decimal('1200.50')), ('East', 'Phone', datetime.date(2023, 8, 2), Decimal('800.25'), 1, Decimal('800.25')), ('Midwest', 'Tablet', datetime.date(2023, 8, 3), Decimal('600.00'), 1, Decimal('600.00'))]
+# Generated: 2025-03-19 09:15:57.149399
+# Result: [('Phone', 500, Decimal('800.25'), Decimal('400125.00'), 1), ('Laptop', 250, Decimal('1200.50'), Decimal('300125.00'), 2), ('Tablet', 150, Decimal('600.00'), Decimal('90000.00'), 3)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales tracking with multiple dimensions
-conn.execute('CREATE TABLE advanced_sales (region TEXT, product TEXT, sale_date DATE, amount DECIMAL(10,2))')
+# Create product sales tracking table
+conn.execute('CREATE TABLE product_performance (product TEXT, sales_volume INT, unit_price DECIMAL(10,2))')
 
-conn.executemany('INSERT INTO advanced_sales VALUES (?, ?, ?, ?)', [
-    ('West', 'Laptop', '2023-08-01', 1200.50),
-    ('East', 'Phone', '2023-08-02', 800.25),
-    ('Midwest', 'Tablet', '2023-08-03', 600.00)
+# Insert sample product data
+conn.executemany('INSERT INTO product_performance VALUES (?, ?, ?)', [
+    ('Laptop', 250, 1200.50),
+    ('Phone', 500, 800.25),
+    ('Tablet', 150, 600.00)
 ])
 
-# Demonstrate complex multi-dimensional analysis with window functions
+# Analyze product performance with advanced window functions
 result = conn.execute('''SELECT
-    region,
     product,
-    sale_date,
-    amount,
-    RANK() OVER (PARTITION BY region ORDER BY amount DESC) as regional_rank,
-    SUM(amount) OVER (PARTITION BY region) as regional_total
-FROM advanced_sales
+    sales_volume,
+    unit_price,
+    sales_volume * unit_price as total_revenue,
+    RANK() OVER (ORDER BY sales_volume * unit_price DESC) as revenue_rank
+FROM product_performance
 ''').fetchall()
 
 for row in result:
-    print(f'Region: {row[0]}, Product: {row[1]}, Date: {row[2]}, Amount: ${row[3]}, Regional Rank: {row[4]}, Regional Total: ${row[5]}')
+    print(f'Product: {row[0]}, Sales Volume: {row[1]}, Unit Price: ${row[2]}, Total Revenue: ${row[3]}, Revenue Rank: {row[4]}')
