@@ -1,5 +1,5 @@
-# Generated: 2025-03-19 08:14:28.122318
-# Result: [('Clothing', 'Shirt', Decimal('50.00'))]
+# Generated: 2025-03-19 08:15:19.215790
+# Result: [('Clothing', 'Pants', Decimal('100.00'))]
 # Valid: True
 import duckdb
 
@@ -13,12 +13,13 @@ CREATE TABLE product_sales (
 );
 
 INSERT INTO product_sales VALUES
-    ('Clothing', 'Shirt', 50.00);
+    ('Clothing', 'Shirt', 50.00),
+    ('Clothing', 'Pants', 100.00);
 ''')
 
 result = conn.execute('''
 SELECT * FROM product_sales
-WHERE category = 'Clothing' AND product = 'Shirt'
+WHERE category = 'Clothing' AND product = 'Pants'
 ''').fetchall()
 
 for row in result:
