@@ -1,8 +1,13 @@
-# Generated: 2025-03-19 19:19:28.398583
-# Result: [11, 12, 13, 14]
+# Generated: 2025-03-19 19:20:22.479016
+# Result: [([2, 4, 6, 8, 10],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
-result = conn.sql('SELECT array_transform([1, 2, 3, 4], x -> x + 10) as incremented_array').fetchone()[0]
-print(result)
+
+# Create and transform numeric array using array_transform
+result = conn.execute('''
+    SELECT array_transform([1, 2, 3, 4, 5], x -> x * 2) as doubled_array
+''').fetchall()
+
+print(result[0][0])  # Output: [2, 4, 6, 8, 10]
