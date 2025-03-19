@@ -1,11 +1,13 @@
-# Generated: 2025-03-19 14:07:47.565939
-# Result: [([1, 0, 2, 1],)]
+# Generated: 2025-03-19 14:08:41.593405
+# Result: [1, 2, 0, 1]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Demonstrate array_transform with modulo operation
-result = conn.execute("""SELECT array_transform([10, 15, 20, 25], x -> x % 3) as transformed_array""").fetchall()
+# Create an array and transform elements using modulo
+result = conn.execute('''
+    SELECT array_transform([10, 20, 30, 40], x -> x % 3) AS modulo_result
+''').fetchone()[0]
 
-print(result[0][0])  # Outputs: [1, 0, 2, 1]
+print(result)  # Expected output: [1, 2, 0, 1]
