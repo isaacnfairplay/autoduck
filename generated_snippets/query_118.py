@@ -1,29 +1,30 @@
-# Generated: 2025-03-19 09:12:18.470476
-# Result: [('Electronics', datetime.date(2023, 7, 15), Decimal('1200.50'), Decimal('1200.50')), ('Electronics', datetime.date(2023, 7, 17), Decimal('800.75'), Decimal('2001.25')), ('Clothing', datetime.date(2023, 7, 16), Decimal('500.25'), Decimal('500.25')), ('Clothing', datetime.date(2023, 7, 18), Decimal('350.00'), Decimal('850.25'))]
+# Generated: 2025-03-19 09:13:19.947029
+# Result: [(1, 'Click', datetime.datetime(2023, 7, 15, 10, 0), 3, 'Click'), (1, 'Purchase', datetime.datetime(2023, 7, 15, 11, 30), 3, 'Click'), (1, 'Search', datetime.datetime(2023, 7, 15, 13, 45), 3, 'Click'), (2, 'View', datetime.datetime(2023, 7, 15, 12, 15), 1, 'View')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales table
-conn.execute('CREATE TABLE sales (category TEXT, amount DECIMAL(10,2), sale_date DATE)')
+# Create user interactions tracking table
+conn.execute('CREATE TABLE user_interactions (user_id INT, interaction_type TEXT, timestamp TIMESTAMP)')
 
-# Insert sample data
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    ('Electronics', 1200.50, '2023-07-15'),
-    ('Clothing', 500.25, '2023-07-16'),
-    ('Electronics', 800.75, '2023-07-17'),
-    ('Clothing', 350.00, '2023-07-18')
+# Insert sample interaction data
+conn.executemany('INSERT INTO user_interactions VALUES (?, ?, ?)', [
+    (1, 'Click', '2023-07-15 10:00:00'),
+    (1, 'Purchase', '2023-07-15 11:30:00'),
+    (2, 'View', '2023-07-15 12:15:00'),
+    (1, 'Search', '2023-07-15 13:45:00')
 ])
 
-# Calculate running total per category
+# Analyze user interactions with advanced window functions
 result = conn.execute('''SELECT
-    category,
-    sale_date,
-    amount,
-    SUM(amount) OVER (PARTITION BY category ORDER BY sale_date) as running_total
-FROM sales
+    user_id,
+    interaction_type,
+    timestamp,
+    COUNT(*) OVER (PARTITION BY user_id) as total_interactions,
+    FIRST_VALUE(interaction_type) OVER (PARTITION BY user_id ORDER BY timestamp) as first_interaction
+FROM user_interactions
 ''').fetchall()
 
 for row in result:
-    print(f'Category: {row[0]}, Date: {row[1]}, Amount: ${row[2]}, Running Total: ${row[3]}')
+    print(f"User ID: {row[0]}, Type: {row[1]}, Time: {row[2]}, Total Interactions: {row[3]}, First Interaction: {row[4]}")
