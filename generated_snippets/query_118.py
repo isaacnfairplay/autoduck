@@ -1,36 +1,38 @@
-# Generated: 2025-03-19 19:54:57.353058
-# Result: [('Phone', 150, 40, 0.26666666666666666, 1), ('Laptop', 100, 25, 0.25, 2), ('Tablet', 75, 15, 0.2, 3)]
+# Generated: 2025-03-19 19:56:39.958803
+# Result: [('Electronics', 'Computers', Decimal('2100.00'), 1), ('Clothing', 'Tops', Decimal('600.00'), 2), ('Clothing', 'Outerwear', Decimal('800.00'), 1), ('Electronics', 'Mobile', Decimal('1500.00'), 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table for tracking product inventory and sales
+# Create product sales table with multi-category hierarchical data
 conn.execute('''
-CREATE TABLE product_tracking (
-    product_id INT,
+CREATE TABLE product_sales (
+    category VARCHAR,
+    subcategory VARCHAR,
     product_name VARCHAR,
-    inventory_quantity INT,
-    sales_quantity INT,
-    price DECIMAL(10,2)
+    sales_amount DECIMAL(10,2)
 );
 
-INSERT INTO product_tracking VALUES
-(1, 'Laptop', 100, 25, 999.99),
-(2, 'Phone', 150, 40, 599.99),
-(3, 'Tablet', 75, 15, 349.99);
+INSERT INTO product_sales VALUES
+('Electronics', 'Computers', 'Laptop', 1200),
+('Electronics', 'Computers', 'Desktop', 900),
+('Electronics', 'Mobile', 'Smartphone', 1500),
+('Clothing', 'Outerwear', 'Jacket', 800),
+('Clothing', 'Tops', 'Shirt', 600);
 '''
 )
 
-# Calculate inventory turnover ratio using window functions
+# Demonstrate multi-level aggregation and window ranking
 result = conn.execute('''
 SELECT 
-    product_name,
-    inventory_quantity,
-    sales_quantity,
-    sales_quantity * 1.0 / inventory_quantity as turnover_ratio,
-    RANK() OVER (ORDER BY sales_quantity * 1.0 / inventory_quantity DESC) as turnover_rank
-FROM product_tracking
+    category, 
+    subcategory, 
+    SUM(sales_amount) as total_subcategory_sales,
+    RANK() OVER (PARTITION BY category ORDER BY SUM(sales_amount) DESC) as subcategory_rank
+FROM product_sales
+GROUP BY category, subcategory
+QUALIFY subcategory_rank <= 2
 ''').fetchall()
 
 print(result)
