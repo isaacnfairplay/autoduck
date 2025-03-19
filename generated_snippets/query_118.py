@@ -1,30 +1,34 @@
-# Generated: 2025-03-19 11:37:09.492903
-# Result: [('Electronics', 1500, 39.473684210526315), ('Electronics', 2300, 60.526315789473685), ('Clothing', 1000, 36.36363636363637), ('Clothing', 1750, 63.63636363636363)]
+# Generated: 2025-03-19 11:38:03.427185
+# Result: [(1, datetime.datetime(2023, 7, 1, 10, 0), 22.5, 0.18), (1, datetime.datetime(2023, 7, 1, 11, 0), 23.100000381469727, 0.18), (2, datetime.datetime(2023, 7, 1, 10, 0), 21.700000762939453, None)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales data table
+# Create sensor monitoring data
 conn.execute('''
-CREATE TABLE sales AS
-SELECT 'Electronics' as category, 1500 as amount
-UNION ALL
-SELECT 'Electronics', 2300
-UNION ALL
-SELECT 'Clothing', 1000
-UNION ALL
-SELECT 'Clothing', 1750
+CREATE TABLE sensor_readings (
+    timestamp TIMESTAMP,
+    sensor_id INTEGER,
+    temperature FLOAT,
+    humidity FLOAT
+);
+
+INSERT INTO sensor_readings VALUES
+('2023-07-01 10:00:00', 1, 22.5, 45.3),
+('2023-07-01 11:00:00', 1, 23.1, 44.8),
+('2023-07-01 10:00:00', 2, 21.7, 46.2);
 ''')
 
-# Calculate percentage of total sales within each category
+# Use window function to calculate sensor variance
 result = conn.execute('''
-SELECT 
-    category, 
-    amount,
-    amount * 100.0 / SUM(amount) OVER (PARTITION BY category) as category_percentage
-FROM sales
+SELECT
+    sensor_id,
+    timestamp,
+    temperature,
+    ROUND(VARIANCE(temperature) OVER (PARTITION BY sensor_id), 2) as temp_variance
+FROM sensor_readings
 ''').fetchall()
 
 for row in result:
-    print(f"Category: {row[0]}, Amount: {row[1]}, Percentage: {row[2]:.2f}%")
+    print(f"Sensor {row[0]} at {row[1]}: {row[2]}°C (Variance: {row[3]})")
