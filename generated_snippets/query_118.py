@@ -1,21 +1,19 @@
-# Generated: 2025-03-19 10:45:01.975333
-# Result: [(datetime.date(2024, 1, 1),), (datetime.date(2024, 4, 1),), (datetime.date(2024, 7, 1),), (datetime.date(2024, 10, 1),), (datetime.date(2025, 1, 1),)]
+# Generated: 2025-03-19 10:45:52.533478
+# Result: [(datetime.date(2023, 1, 1),), (datetime.date(2023, 1, 2),), (datetime.date(2023, 1, 3),), (datetime.date(2023, 1, 4),), (datetime.date(2023, 1, 5),), (datetime.date(2023, 1, 6),), (datetime.date(2023, 1, 7),), (datetime.date(2023, 1, 8),), (datetime.date(2023, 1, 9),), (datetime.date(2023, 1, 10),)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Generate quarterly fiscal date series for 2024
-result = conn.execute("""
-WITH RECURSIVE date_series(fiscal_quarter) AS (
-    SELECT DATE '2024-01-01'
+# Generate a date series with date constraint
+result = conn.execute("""WITH RECURSIVE date_series AS (
+    SELECT DATE '2023-01-01' AS generated_date
     UNION ALL
-    SELECT fiscal_quarter + INTERVAL 3 MONTH
+    SELECT generated_date + INTERVAL 1 DAY
     FROM date_series
-    WHERE fiscal_quarter < DATE '2024-12-31'
+    WHERE generated_date < DATE '2023-01-10'
 )
-SELECT fiscal_quarter
-FROM date_series
-""").fetchall()
+SELECT generated_date
+FROM date_series""").fetchall()
 
 print([str(date[0]) for date in result])
