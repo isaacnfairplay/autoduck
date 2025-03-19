@@ -1,35 +1,36 @@
-# Generated: 2025-03-19 11:39:53.712269
-# Result: [('Clothing', 'Jeans', Decimal('75.50'), 1), ('Clothing', 'Shirt', Decimal('50.00'), 2), ('Electronics', 'Laptop', Decimal('1200.00'), 1), ('Electronics', 'Smartphone', Decimal('800.50'), 2)]
+# Generated: 2025-03-19 11:40:46.756405
+# Result: [('Electronics', Decimal('140050.00'), 1000.25), ('Sports', Decimal('9000.00'), 120.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and analyze product categories
+# Create product inventory table
 conn.execute('''
-CREATE TABLE product_categories (
+CREATE TABLE products (
+    product_id INTEGER,
+    name VARCHAR,
     category VARCHAR,
-    product VARCHAR,
-    price DECIMAL(10,2)
+    stock_quantity INTEGER,
+    unit_price DECIMAL(10,2)
 );
 
-INSERT INTO product_categories VALUES
-('Electronics', 'Laptop', 1200.00),
-('Electronics', 'Smartphone', 800.50),
-('Clothing', 'Shirt', 50.00),
-('Clothing', 'Jeans', 75.50);
+INSERT INTO products VALUES
+(1, 'Laptop', 'Electronics', 50, 1200.00),
+(2, 'Smartphone', 'Electronics', 100, 800.50),
+(3, 'Running Shoes', 'Sports', 75, 120.00);
 ''')
 
-# Rank products by price within each category
+# Analyze inventory valuation by category
 result = conn.execute('''
 SELECT
     category,
-    product,
-    price,
-    RANK() OVER (PARTITION BY category ORDER BY price DESC) as price_rank
-FROM product_categories
-ORDER BY category, price_rank
+    SUM(stock_quantity * unit_price) as total_inventory_value,
+    AVG(unit_price) as avg_product_price
+FROM products
+GROUP BY category
+ORDER BY total_inventory_value DESC
 ''').fetchall()
 
 for row in result:
-    print(f"{row[1]} ({row[0]}): ${row[2]} - Rank: {row[3]}")
+    print(f"{row[0]}: Inventory Value ${row[1]:.2f}, Avg Price ${row[2]:.2f}")
