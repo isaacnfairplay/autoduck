@@ -1,10 +1,11 @@
-# Generated: 2025-03-19 09:51:04.865351
+# Generated: 2025-03-19 09:53:33.094306
 # Result: [('Electronics', 'Laptop', 1200), ('Electronics', 'Phone', 800)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
+# Create a sample table with tuple data
 conn.sql("""
 CREATE TABLE products AS
 SELECT * FROM (VALUES
@@ -14,6 +15,7 @@ SELECT * FROM (VALUES
 ) t(category, product_name, price)
 """)
 
+# Query products in the Electronics category
 result = conn.sql("""
 SELECT category, product_name, price
 FROM products
