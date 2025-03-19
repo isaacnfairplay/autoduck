@@ -1,33 +1,28 @@
-# Generated: 2025-03-19 09:01:58.194117
-# Result: [('Laptop', datetime.date(2023, 1, 15), Decimal('1200.50'), Decimal('1200.50')), ('Laptop', datetime.date(2023, 1, 17), Decimal('1500.75'), Decimal('2701.25')), ('Phone', datetime.date(2023, 1, 16), Decimal('800.25'), Decimal('800.25')), ('Phone', datetime.date(2023, 1, 19), Decimal('950.30'), Decimal('1750.55')), ('Tablet', datetime.date(2023, 1, 18), Decimal('600.00'), Decimal('600.00'))]
+# Generated: 2025-03-19 09:02:49.887149
+# Result: [('Houston', Decimal('90.10'), 1), ('Los Angeles', Decimal('85.20'), 2), ('New York', Decimal('72.50'), 3), ('Chicago', Decimal('68.30'), 4)]
 # Valid: True
 import duckdb
 
+# Connect to an in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create a sample sales dataset
-conn.execute('''
-    CREATE TABLE sales (product TEXT, sale_date DATE, amount DECIMAL(10,2))
-''')
-
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    ('Laptop', '2023-01-15', 1200.50),
-    ('Phone', '2023-01-16', 800.25),
-    ('Laptop', '2023-01-17', 1500.75),
-    ('Tablet', '2023-01-18', 600.00),
-    ('Phone', '2023-01-19', 950.30)
+# Create and populate a sample temperature dataset
+conn.execute('CREATE TABLE weather (city TEXT, temp_f DECIMAL(5,2), recorded_at TIMESTAMP)')
+conn.executemany('INSERT INTO weather VALUES (?, ?, ?)', [
+    ('New York', 72.5, '2023-07-15 10:00:00'),
+    ('Chicago', 68.3, '2023-07-15 11:00:00'),
+    ('Los Angeles', 85.2, '2023-07-15 09:00:00'),
+    ('Houston', 90.1, '2023-07-15 12:00:00')
 ])
 
-# Use window function to calculate rolling cumulative sales per product
+# Use window function to rank cities by temperature
 result = conn.execute('''
     SELECT 
-        product, 
-        sale_date, 
-        amount,
-        SUM(amount) OVER (PARTITION BY product ORDER BY sale_date) as cumulative_sales
-    FROM sales
-    ORDER BY product, sale_date
+        city, 
+        temp_f, 
+        RANK() OVER (ORDER BY temp_f DESC) as temp_rank
+    FROM weather
 ''').fetchall()
 
 for row in result:
-    print(f"Product: {row[0]}, Date: {row[1]}, Sale: ${row[2]}, Cumulative Sales: ${row[3]}")
+    print(f"City: {row[0]}, Temperature: {row[1]}°F, Rank: {row[2]}")
