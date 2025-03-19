@@ -1,5 +1,5 @@
-# Generated: 2025-03-19 08:23:28.033465
-# Result: [('Electronics', Decimal('2000.75')), ('Clothing', Decimal('250.75'))]
+# Generated: 2025-03-19 08:24:20.970214
+# Result: [('Clothing', 'Jacket', Decimal('250.75'), Decimal('250.75')), ('Electronics', 'Smartphone', Decimal('800.25'), Decimal('800.25')), ('Electronics', 'Laptop', Decimal('1200.50'), Decimal('2000.75'))]
 # Valid: True
 import duckdb
 
@@ -19,10 +19,13 @@ INSERT INTO product_sales VALUES
 ''')
 
 result = conn.execute('''
-SELECT category, SUM(sale_amount) as total_sales
+SELECT 
+    category, 
+    product, 
+    sale_amount,
+    SUM(sale_amount) OVER (PARTITION BY category ORDER BY sale_amount) as cumulative_category_sales
 FROM product_sales
-GROUP BY category
-ORDER BY total_sales DESC
+ORDER BY category, cumulative_category_sales
 ''').fetchall()
 
 for row in result:
