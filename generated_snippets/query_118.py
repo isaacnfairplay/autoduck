@@ -1,5 +1,5 @@
-# Generated: 2025-03-19 08:24:20.970214
-# Result: [('Clothing', 'Jacket', Decimal('250.75'), Decimal('250.75')), ('Electronics', 'Smartphone', Decimal('800.25'), Decimal('800.25')), ('Electronics', 'Laptop', Decimal('1200.50'), Decimal('2000.75'))]
+# Generated: 2025-03-19 08:25:19.657986
+# Result: [('Clothing', 'Jacket', Decimal('250.75'), 1), ('Electronics', 'Laptop', Decimal('1200.50'), 1), ('Electronics', 'Smartphone', Decimal('800.25'), 2)]
 # Valid: True
 import duckdb
 
@@ -23,9 +23,9 @@ SELECT
     category, 
     product, 
     sale_amount,
-    SUM(sale_amount) OVER (PARTITION BY category ORDER BY sale_amount) as cumulative_category_sales
+    RANK() OVER (PARTITION BY category ORDER BY sale_amount DESC) as product_rank
 FROM product_sales
-ORDER BY category, cumulative_category_sales
+ORDER BY category, product_rank
 ''').fetchall()
 
 for row in result:
