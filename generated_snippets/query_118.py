@@ -1,17 +1,30 @@
-# Generated: 2025-03-19 19:42:49.954122
-# Result: [(1, 'Alice', Decimal('25.5')), (2, 'Bob', Decimal('30.2')), (3, 'Charlie', Decimal('35.7'))]
+# Generated: 2025-03-19 19:43:42.063393
+# Result: [('Electronics', Decimal('3600.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Use VALUES to create inline table with multiple data types
-result = conn.execute("""
-SELECT * FROM (VALUES
-    (1, 'Alice', 25.5),
-    (2, 'Bob', 30.2),
-    (3, 'Charlie', 35.7)
-) AS people(id, name, score)
-""").fetchall()
+# Create product sales table
+conn.execute('''
+CREATE TABLE product_sales (
+    category VARCHAR,
+    product_name VARCHAR,
+    sales_amount DECIMAL(10,2)
+);
+
+INSERT INTO product_sales VALUES
+('Electronics', 'Laptop', 1200),
+('Electronics', 'Phone', 1500),
+('Electronics', 'Tablet', 900);
+''')
+
+# Calculate total sales by category
+result = conn.execute('''
+SELECT category, 
+       SUM(sales_amount) as total_category_sales
+FROM product_sales
+GROUP BY category
+''').fetchall()
 
 print(result)
