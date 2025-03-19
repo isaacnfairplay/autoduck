@@ -1,30 +1,30 @@
-# Generated: 2025-03-19 08:38:32.242908
-# Result: [('South', 'Laptop', Decimal('4800.60'), 0, 0), ('North', None, Decimal('9500.75'), 0, 1), ('South', None, Decimal('8001.35'), 0, 1), ('North', 'Laptop', Decimal('5000.50'), 0, 0), ('North', 'Desktop', Decimal('4500.25'), 0, 0), ('South', 'Tablet', Decimal('3200.75'), 0, 0), (None, 'Laptop', Decimal('9801.10'), 1, 0), (None, 'Desktop', Decimal('4500.25'), 1, 0), (None, None, Decimal('17502.10'), 1, 1), (None, 'Tablet', Decimal('3200.75'), 1, 0)]
+# Generated: 2025-03-19 08:39:24.843271
+# Result: [('GOOGL', datetime.date(2023, 1, 1), Decimal('90.50'), 90.5), ('GOOGL', datetime.date(2023, 1, 2), Decimal('92.10'), 91.3), ('GOOGL', datetime.date(2023, 1, 3), Decimal('91.80'), 91.46666666666667), ('AAPL', datetime.date(2023, 1, 1), Decimal('150.25'), 150.25), ('AAPL', datetime.date(2023, 1, 2), Decimal('152.40'), 151.325), ('AAPL', datetime.date(2023, 1, 3), Decimal('149.75'), 150.8)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table with geographic sales data
-conn.execute('CREATE TABLE sales (region TEXT, product TEXT, revenue DECIMAL(10,2))')
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    ('North', 'Laptop', 5000.50), 
-    ('South', 'Tablet', 3200.75),
-    ('North', 'Desktop', 4500.25),
-    ('South', 'Laptop', 4800.60)
+# Create and populate time series data
+conn.execute('CREATE TABLE stock_prices (symbol TEXT, date DATE, price DECIMAL(10,2))')
+conn.executemany('INSERT INTO stock_prices VALUES (?, ?, ?)', [
+    ('AAPL', '2023-01-01', 150.25),
+    ('AAPL', '2023-01-02', 152.40),
+    ('AAPL', '2023-01-03', 149.75),
+    ('GOOGL', '2023-01-01', 90.50),
+    ('GOOGL', '2023-01-02', 92.10),
+    ('GOOGL', '2023-01-03', 91.80)
 ])
 
-# Perform multi-dimensional aggregation with GROUPING SETS
+# Calculate moving average using window function
 result = conn.execute('''
     SELECT 
-        region, 
-        product, 
-        SUM(revenue) as total_revenue,
-        GROUPING(region) as region_grouping,
-        GROUPING(product) as product_grouping
-    FROM sales
-    GROUP BY GROUPING SETS ((region, product), (region), (product), ())
+        symbol, 
+        date, 
+        price,
+        AVG(price) OVER (PARTITION BY symbol ORDER BY date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as moving_avg
+    FROM stock_prices
 ''').fetchall()
 
 for row in result:
-    print(f"Region: {row[0]}, Product: {row[1]}, Revenue: {row[2]}, Region Grouping: {row[3]}, Product Grouping: {row[4]}")
+    print(f"Symbol: {row[0]}, Date: {row[1]}, Price: {row[2]}, Moving Avg: {row[3]:.2f}")
