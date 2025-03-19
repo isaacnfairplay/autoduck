@@ -1,13 +1,8 @@
-# Generated: 2025-03-19 13:24:32.243225
-# Result: [3, 4, 5]
+# Generated: 2025-03-19 13:25:21.243618
+# Result: [1, 4, 9, 16]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
-
-# Demonstrate array filter with predicate
-result = conn.execute(
-    'SELECT array_filter([1, 2, 3, 4, 5], x -> x > 2) AS filtered_list'
-).fetchone()[0]
-
-print(result)  # Output: [3, 4, 5]
+result = conn.execute('SELECT array_transform([1, 2, 3, 4], x -> x * x) as squared_array').fetchone()[0]
+print(result)
