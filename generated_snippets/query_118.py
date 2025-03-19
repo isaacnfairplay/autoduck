@@ -1,37 +1,21 @@
-# Generated: 2025-03-19 10:37:29.391883
-# Result: [('USA', 2020, 113, 1), ('China', 2020, 88, 2), ('Japan', 2020, 58, 3)]
+# Generated: 2025-03-19 10:38:19.497527
+# Result: [(datetime.date(2024, 1, 1),), (datetime.date(2024, 1, 8),), (datetime.date(2024, 1, 15),), (datetime.date(2024, 1, 22),), (datetime.date(2024, 1, 29),), (datetime.date(2024, 2, 5),), (datetime.date(2024, 2, 12),), (datetime.date(2024, 2, 19),), (datetime.date(2024, 2, 26),), (datetime.date(2024, 3, 4),), (datetime.date(2024, 3, 11),), (datetime.date(2024, 3, 18),), (datetime.date(2024, 3, 25),), (datetime.date(2024, 4, 1),)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table of Olympic medal counts
-conn.execute('''
-    CREATE TABLE olympic_medals (
-        country TEXT,
-        year INTEGER,
-        gold INTEGER,
-        silver INTEGER,
-        bronze INTEGER
-    );
-''')
+# Generate a weekly date series for 2024 fiscal quarters
+result = conn.execute("""
+WITH RECURSIVE date_series AS (
+    SELECT DATE '2024-01-01' AS generated_date
+    UNION ALL
+    SELECT generated_date + INTERVAL 7 DAYS
+    FROM date_series
+    WHERE generated_date < DATE '2024-04-01'
+)
+SELECT generated_date
+FROM date_series
+""").fetchall()
 
-# Insert sample data
-conn.executemany('INSERT INTO olympic_medals VALUES (?, ?, ?, ?, ?)', [
-    ('USA', 2020, 39, 41, 33),
-    ('China', 2020, 38, 32, 18),
-    ('Japan', 2020, 27, 14, 17)
-])
-
-# Compute total medal counts with window function
-result = conn.execute('''
-    SELECT 
-        country, 
-        year, 
-        gold + silver + bronze AS total_medals,
-        RANK() OVER (ORDER BY gold DESC) as gold_rank
-    FROM olympic_medals
-''').fetchall()
-
-for row in result:
-    print(row)
+print([date[0] for date in result])
