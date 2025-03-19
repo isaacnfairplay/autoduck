@@ -1,4 +1,4 @@
-# Generated: 2025-03-18 18:43:08.408334
+# Generated: 2025-03-19 08:01:14.993662
 # Result: None
 # Valid: True
 # Variable duck_conn: Type: DuckDBPyConnection
