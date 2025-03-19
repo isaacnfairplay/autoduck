@@ -1,28 +1,24 @@
-# Generated: 2025-03-19 09:02:49.887149
-# Result: [('Houston', Decimal('90.10'), 1), ('Los Angeles', Decimal('85.20'), 2), ('New York', Decimal('72.50'), 3), ('Chicago', Decimal('68.30'), 4)]
+# Generated: 2025-03-19 09:03:41.145146
+# Result: (Decimal('185050.00'), 866.9166666666666)
 # Valid: True
 import duckdb
 
-# Connect to an in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create and populate a sample temperature dataset
-conn.execute('CREATE TABLE weather (city TEXT, temp_f DECIMAL(5,2), recorded_at TIMESTAMP)')
-conn.executemany('INSERT INTO weather VALUES (?, ?, ?)', [
-    ('New York', 72.5, '2023-07-15 10:00:00'),
-    ('Chicago', 68.3, '2023-07-15 11:00:00'),
-    ('Los Angeles', 85.2, '2023-07-15 09:00:00'),
-    ('Houston', 90.1, '2023-07-15 12:00:00')
+# Create product inventory table
+conn.execute('CREATE TABLE inventory (product_id INT, product_name TEXT, stock INT, price DECIMAL(10,2))')
+
+# Insert sample inventory data
+conn.executemany('INSERT INTO inventory VALUES (?, ?, ?, ?)', [
+    (1, 'Laptop', 50, 1200.50),
+    (2, 'Phone', 100, 800.25),
+    (3, 'Tablet', 75, 600.00)
 ])
 
-# Use window function to rank cities by temperature
-result = conn.execute('''
-    SELECT 
-        city, 
-        temp_f, 
-        RANK() OVER (ORDER BY temp_f DESC) as temp_rank
-    FROM weather
-''').fetchall()
+# Calculate total inventory value using SQL aggregation
+result = conn.execute('''SELECT 
+    SUM(stock * price) as total_inventory_value, 
+    AVG(price) as average_product_price 
+FROM inventory''').fetchone()
 
-for row in result:
-    print(f"City: {row[0]}, Temperature: {row[1]}°F, Rank: {row[2]}")
+print(f'Total Inventory Value: ${result[0]}, Average Product Price: ${result[1]}')
