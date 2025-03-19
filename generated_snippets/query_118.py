@@ -1,31 +1,25 @@
-# Generated: 2025-03-19 10:22:42.685667
-# Result: [('Smartphone', datetime.date(2023, 7, 2), Decimal('8992.50'))]
+# Generated: 2025-03-19 10:23:34.186381
+# Result: [(datetime.date(2023, 7, 1), Decimal('150.500')), (datetime.date(2023, 7, 2), Decimal('200.750'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create product sales table
+# Create sales table with dates
 conn.execute('''
-    CREATE TABLE product_sales (
-        product_id INTEGER,
-        product_name VARCHAR,
-        sale_date DATE,
-        quantity INTEGER,
-        price DECIMAL(10,2)
-    );
-
-    INSERT INTO product_sales VALUES
-        (1, 'Laptop', '2023-07-01', 10, 999.99),
-        (2, 'Smartphone', '2023-07-02', 15, 599.50)
+    CREATE TABLE sales (sale_date DATE, amount DECIMAL);
+    INSERT INTO sales VALUES
+        ('2023-07-01', 150.50),
+        ('2023-07-02', 200.75),
+        ('2023-07-03', 180.25)
 ''');
 
-# Perform simple SELECT with multiple conditions
+# Query sales by specific date range
 result = conn.execute('''
-    SELECT product_name, sale_date, quantity * price as total_revenue
-    FROM product_sales
-    WHERE quantity > 10 AND price > 500
-    ORDER BY total_revenue DESC
+    SELECT sale_date, amount
+    FROM sales
+    WHERE sale_date BETWEEN '2023-07-01' AND '2023-07-02'
+    ORDER BY sale_date
 ''').fetchall()
 
 for row in result:
