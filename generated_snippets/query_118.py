@@ -1,29 +1,38 @@
-# Generated: 2025-03-19 10:26:12.500018
-# Result: [(datetime.date(2023, 7, 1), 'Laptop', 10, Decimal('999.99'), Decimal('9999.90'), 'North'), (datetime.date(2023, 7, 1), 'Smartphone', 15, Decimal('599.50'), Decimal('8992.50'), 'South'), (datetime.date(2023, 7, 2), 'Laptop', 8, Decimal('999.99'), Decimal('7999.92'), 'East'), (datetime.date(2023, 7, 2), 'Tablet', 5, Decimal('399.75'), Decimal('1998.75'), 'West')]
+# Generated: 2025-03-19 10:27:05.437423
+# Result: [('Smartphone', 'Electronics', datetime.date(2023, 7, 2), 15, Decimal('18992.40'), 1), ('Laptop', 'Electronics', datetime.date(2023, 7, 1), 10, Decimal('9999.90'), 2), ('Desk Chair', 'Furniture', datetime.date(2023, 7, 3), 5, Decimal('1249.95'), 1)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create daily sales table with comprehensive schema
+# Create a complex product sales analysis table
 conn.execute('''
-    CREATE TABLE daily_sales (
-        sale_date DATE,
+    CREATE TABLE product_sales (
+        product_id INTEGER,
         product_name VARCHAR,
+        category VARCHAR,
+        sale_date DATE,
         quantity INTEGER,
-        unit_price DECIMAL(10,2),
-        total_revenue DECIMAL(12,2),
-        region VARCHAR
+        unit_price DECIMAL(10,2)
     );
 
-    INSERT INTO daily_sales VALUES
-        ('2023-07-01', 'Laptop', 10, 999.99, 9999.90, 'North'),
-        ('2023-07-01', 'Smartphone', 15, 599.50, 8992.50, 'South'),
-        ('2023-07-02', 'Laptop', 8, 999.99, 7999.92, 'East'),
-        ('2023-07-02', 'Tablet', 5, 399.75, 1998.75, 'West')
+    INSERT INTO product_sales VALUES
+        (1, 'Laptop', 'Electronics', '2023-07-01', 10, 999.99),
+        (2, 'Smartphone', 'Electronics', '2023-07-02', 15, 599.50),
+        (3, 'Desk Chair', 'Furniture', '2023-07-03', 5, 249.99)
 ''');
 
-# Query daily sales data
-result = conn.execute('SELECT * FROM daily_sales').fetchall()
+# Advanced sales analysis with window functions
+result = conn.execute('''
+    SELECT 
+        product_name,
+        category,
+        sale_date,
+        quantity,
+        SUM(quantity * unit_price) OVER (PARTITION BY category ORDER BY sale_date) as cumulative_revenue,
+        RANK() OVER (PARTITION BY category ORDER BY quantity DESC) as sales_rank
+    FROM product_sales
+''').fetchall()
+
 for row in result:
     print(row)
