@@ -1,26 +1,30 @@
-# Generated: 2025-03-19 08:37:39.881796
-# Result: [('Phone', 'West', 75, 1), ('Desktop', 'West', 40, 2), ('Laptop', 'East', 50, 1), ('Tablet', 'East', 30, 2)]
+# Generated: 2025-03-19 08:38:32.242908
+# Result: [('South', 'Laptop', Decimal('4800.60'), 0, 0), ('North', None, Decimal('9500.75'), 0, 1), ('South', None, Decimal('8001.35'), 0, 1), ('North', 'Laptop', Decimal('5000.50'), 0, 0), ('North', 'Desktop', Decimal('4500.25'), 0, 0), ('South', 'Tablet', Decimal('3200.75'), 0, 0), (None, 'Laptop', Decimal('9801.10'), 1, 0), (None, 'Desktop', Decimal('4500.25'), 1, 0), (None, None, Decimal('17502.10'), 1, 1), (None, 'Tablet', Decimal('3200.75'), 1, 0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate product inventory table
-conn.execute('CREATE TABLE inventory (product TEXT, quantity INT, warehouse TEXT)')
-conn.executemany('INSERT INTO inventory VALUES (?, ?, ?)', [
-    ('Laptop', 50, 'East'), ('Phone', 75, 'West'), 
-    ('Tablet', 30, 'East'), ('Desktop', 40, 'West')
+# Create table with geographic sales data
+conn.execute('CREATE TABLE sales (region TEXT, product TEXT, revenue DECIMAL(10,2))')
+conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
+    ('North', 'Laptop', 5000.50), 
+    ('South', 'Tablet', 3200.75),
+    ('North', 'Desktop', 4500.25),
+    ('South', 'Laptop', 4800.60)
 ])
 
-# Use window function to rank products by quantity per warehouse
+# Perform multi-dimensional aggregation with GROUPING SETS
 result = conn.execute('''
     SELECT 
+        region, 
         product, 
-        warehouse, 
-        quantity,
-        RANK() OVER (PARTITION BY warehouse ORDER BY quantity DESC) as rank
-    FROM inventory
+        SUM(revenue) as total_revenue,
+        GROUPING(region) as region_grouping,
+        GROUPING(product) as product_grouping
+    FROM sales
+    GROUP BY GROUPING SETS ((region, product), (region), (product), ())
 ''').fetchall()
 
 for row in result:
-    print(f"Product: {row[0]}, Warehouse: {row[1]}, Quantity: {row[2]}, Rank: {row[3]}")
+    print(f"Region: {row[0]}, Product: {row[1]}, Revenue: {row[2]}, Region Grouping: {row[3]}, Product Grouping: {row[4]}")
