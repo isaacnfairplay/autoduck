@@ -1,24 +1,16 @@
-# Generated: 2025-03-19 15:59:27.402027
-# Result: [('temperature', 98.9, 2), ('pH', 6.9, 1)]
+# Generated: 2025-03-19 16:00:17.305490
+# Result: [(1,), (2,), (3,), (4,), (5,), (6,), (7,), (8,), (9,), (10,)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sample table
-conn.execute('''
-CREATE TABLE products (
-    id INTEGER,
-    name VARCHAR,
-    price DECIMAL(10,2)
-);
+# Create a recursive common table expression (CTE) to generate a sequence
+result = conn.execute('''WITH RECURSIVE number_sequence(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1 FROM number_sequence WHERE n < 10
+)
+SELECT * FROM number_sequence''').fetchall()
 
-INSERT INTO products VALUES
-    (1, 'Laptop', 1200.50),
-    (2, 'Smartphone', 800.25),
-    (3, 'Tablet', 500.75)
-''')
-
-# Create a relation and print results
-rel = conn.sql('SELECT name, price FROM products WHERE price > 1000')
-print(rel.execute().fetchall())
+print([row[0] for row in result])
