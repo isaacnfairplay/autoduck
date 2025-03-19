@@ -1,39 +1,35 @@
-# Generated: 2025-03-19 18:54:43.321071
-# Result: [('East', 1, Decimal('48000.00'), Decimal('48000.00')), ('East', 2, Decimal('53000.00'), Decimal('101000.00')), ('North', 1, Decimal('50000.00'), Decimal('50000.00')), ('North', 2, Decimal('55000.00'), Decimal('105000.00')), ('South', 1, Decimal('45000.00'), Decimal('45000.00')), ('South', 2, Decimal('52000.00'), Decimal('97000.00'))]
+# Generated: 2025-03-19 18:57:18.232781
+# Result: [(1, datetime.datetime(2023, 6, 1, 10, 0), 22.5, 22.5), (1, datetime.datetime(2023, 6, 1, 11, 0), 23.100000381469727, 22.800000190734863), (2, datetime.datetime(2023, 6, 1, 10, 0), 21.799999237060547, 21.799999237060547), (2, datetime.datetime(2023, 6, 1, 11, 0), 22.299999237060547, 22.049999237060547)]
 # Valid: True
 import duckdb
 
-# Create an in-memory database and load sample sales data
+# Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create a sales table with region and quarterly revenue
+# Create and populate temperature sensor data
 conn.sql("""
-    CREATE TABLE sales (
-        region VARCHAR,
-        quarter INTEGER,
-        revenue DECIMAL(10,2)
-    );
+CREATE TABLE sensor_readings (
+    sensor_id INTEGER,
+    timestamp TIMESTAMP,
+    temperature FLOAT
+);
 
-    INSERT INTO sales VALUES
-        ('North', 1, 50000.00),
-        ('North', 2, 55000.00),
-        ('South', 1, 45000.00),
-        ('South', 2, 52000.00),
-        ('East', 1, 48000.00),
-        ('East', 2, 53000.00);
+INSERT INTO sensor_readings VALUES
+    (1, '2023-06-01 10:00:00', 22.5),
+    (1, '2023-06-01 11:00:00', 23.1),
+    (2, '2023-06-01 10:00:00', 21.8),
+    (2, '2023-06-01 11:00:00', 22.3);
 """)
 
-# Use window function to calculate running total by region
+# Calculate moving average temperature per sensor
 result = conn.sql("""
-    SELECT 
-        region, 
-        quarter, 
-        revenue,
-        SUM(revenue) OVER (PARTITION BY region ORDER BY quarter) as cumulative_revenue
-    FROM sales
-    ORDER BY region, quarter
+SELECT 
+    sensor_id, 
+    timestamp, 
+    temperature,
+    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as rolling_avg
+FROM sensor_readings
 """).fetchall()
 
-# Print results
 for row in result:
-    print(f"Region: {row[0]}, Quarter: {row[1]}, Revenue: ${row[2]}, Cumulative Revenue: ${row[3]}")
+    print(f"Sensor {row[0]}: {row[1]} - Temp: {row[2]}°C, Rolling Avg: {row[3]}°C")
