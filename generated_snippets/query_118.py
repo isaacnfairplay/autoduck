@@ -1,30 +1,31 @@
-# Generated: 2025-03-19 08:39:24.843271
-# Result: [('GOOGL', datetime.date(2023, 1, 1), Decimal('90.50'), 90.5), ('GOOGL', datetime.date(2023, 1, 2), Decimal('92.10'), 91.3), ('GOOGL', datetime.date(2023, 1, 3), Decimal('91.80'), 91.46666666666667), ('AAPL', datetime.date(2023, 1, 1), Decimal('150.25'), 150.25), ('AAPL', datetime.date(2023, 1, 2), Decimal('152.40'), 151.325), ('AAPL', datetime.date(2023, 1, 3), Decimal('149.75'), 150.8)]
+# Generated: 2025-03-19 08:40:17.652680
+# Result: [('Charlie', 'West', 2, Decimal('55000.90'), 1), ('Charlie', 'West', 1, Decimal('52000.75'), 2), ('Alice', 'West', 2, Decimal('48000.60'), 3), ('Alice', 'West', 1, Decimal('45000.50'), 4), ('Bob', 'East', 2, Decimal('41000.30'), 1), ('Bob', 'East', 1, Decimal('38000.25'), 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate time series data
-conn.execute('CREATE TABLE stock_prices (symbol TEXT, date DATE, price DECIMAL(10,2))')
-conn.executemany('INSERT INTO stock_prices VALUES (?, ?, ?)', [
-    ('AAPL', '2023-01-01', 150.25),
-    ('AAPL', '2023-01-02', 152.40),
-    ('AAPL', '2023-01-03', 149.75),
-    ('GOOGL', '2023-01-01', 90.50),
-    ('GOOGL', '2023-01-02', 92.10),
-    ('GOOGL', '2023-01-03', 91.80)
+# Create and populate sales representative performance table
+conn.execute('CREATE TABLE sales_reps (rep_name TEXT, region TEXT, sales_amount DECIMAL(10,2), quarter INT)')
+conn.executemany('INSERT INTO sales_reps VALUES (?, ?, ?, ?)', [
+    ('Alice', 'West', 45000.50, 1),
+    ('Bob', 'East', 38000.25, 1),
+    ('Charlie', 'West', 52000.75, 1),
+    ('Alice', 'West', 48000.60, 2),
+    ('Bob', 'East', 41000.30, 2),
+    ('Charlie', 'West', 55000.90, 2)
 ])
 
-# Calculate moving average using window function
+# Calculate sales representative performance ranking within region
 result = conn.execute('''
     SELECT 
-        symbol, 
-        date, 
-        price,
-        AVG(price) OVER (PARTITION BY symbol ORDER BY date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as moving_avg
-    FROM stock_prices
+        rep_name, 
+        region, 
+        quarter, 
+        sales_amount,
+        DENSE_RANK() OVER (PARTITION BY region ORDER BY sales_amount DESC) as performance_rank
+    FROM sales_reps
 ''').fetchall()
 
 for row in result:
-    print(f"Symbol: {row[0]}, Date: {row[1]}, Price: {row[2]}, Moving Avg: {row[3]:.2f}")
+    print(f"Rep: {row[0]}, Region: {row[1]}, Quarter: {row[2]}, Sales: ${row[3]}, Rank: {row[4]}")
