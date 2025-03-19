@@ -1,26 +1,31 @@
-# Generated: 2025-03-19 09:42:29.243652
-# Result: [('Electronics', 'Phone', 750), ('Books', 'Textbook', 600)]
+# Generated: 2025-03-19 09:43:21.193567
+# Result: [('Electronics', 1, 500.0), ('Clothing', 1, 250.75), ('Books', 1, 100.5)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
 conn.sql("""
-CREATE TABLE sales AS
-SELECT * FROM (VALUES
-    ('Electronics', 'Laptop', 500),
-    ('Electronics', 'Phone', 750),
-    ('Clothing', 'Shirt', 300),
-    ('Clothing', 'Pants', 450),
-    ('Books', 'Novel', 200),
-    ('Books', 'Textbook', 600)
-) t(category, product, amount)
+CREATE TABLE transactions (
+    transaction_id INTEGER,
+    product_category VARCHAR,
+    amount DECIMAL(10,2),
+    transaction_date DATE
+);
+
+INSERT INTO transactions VALUES
+    (1, 'Electronics', 500.00, '2023-06-01'),
+    (2, 'Clothing', 250.75, '2023-06-02'),
+    (3, 'Books', 100.50, '2023-06-03')
 """)
 
 result = conn.sql("""
-SELECT category, product, amount
-FROM sales
-WHERE amount > 500
+SELECT 
+    product_category, 
+    COUNT(*) as transaction_count,
+    AVG(amount) as avg_transaction_value
+FROM transactions
+GROUP BY product_category
 """).fetchall()
 
 print(result)
