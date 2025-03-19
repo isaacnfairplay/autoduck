@@ -1,34 +1,35 @@
-# Generated: 2025-03-19 10:09:51.566723
-# Result: [('Tablet', datetime.datetime(2023, 1, 2, 14, 20), 2, 2), ('Laptop', datetime.datetime(2023, 1, 1, 10, 30), 5, 5), ('Laptop', datetime.datetime(2023, 1, 2, 9, 15), 7, 12), ('Phone', datetime.datetime(2023, 1, 1, 11, 45), 3, 3)]
+# Generated: 2025-03-19 10:10:43.612244
+# Result: [('Laptop', 'Electronics', 50, 1, 10.0), ('Smartphone', 'Electronics', 30, 2, -10.0), ('Desk Chair', 'Furniture', 25, 1, 0.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create time series sales data with datetime
+# Create and populate product inventory table
 conn.execute('''
-    CREATE TABLE sales_timeseries (
-        date TIMESTAMP,
-        product VARCHAR,
-        quantity INTEGER,
-        price DECIMAL(10,2)
+    CREATE TABLE inventory (
+        product_id INTEGER,
+        product_name VARCHAR,
+        category VARCHAR,
+        stock_quantity INTEGER,
+        reorder_point INTEGER
     );
 
-    INSERT INTO sales_timeseries VALUES
-        ('2023-01-01 10:30:00', 'Laptop', 5, 999.99),
-        ('2023-01-01 11:45:00', 'Phone', 3, 599.50),
-        ('2023-01-02 09:15:00', 'Laptop', 7, 999.99),
-        ('2023-01-02 14:20:00', 'Tablet', 2, 399.75)
-''');
+    INSERT INTO inventory VALUES
+        (1, 'Laptop', 'Electronics', 50, 20),
+        (2, 'Smartphone', 'Electronics', 30, 15),
+        (3, 'Desk Chair', 'Furniture', 25, 10);
+''')
 
-# Analyze sales time series with window functions
+# Analyze inventory with advanced window function
 result = conn.execute('''
     SELECT 
-        product, 
-        date, 
-        quantity,
-        SUM(quantity) OVER (PARTITION BY product ORDER BY date) as cumulative_sales
-    FROM sales_timeseries
+        product_name,
+        category,
+        stock_quantity,
+        RANK() OVER (PARTITION BY category ORDER BY stock_quantity DESC) as stock_rank,
+        stock_quantity - AVG(stock_quantity) OVER (PARTITION BY category) as stock_deviation
+    FROM inventory
 ''').fetchall()
 
 for row in result:
