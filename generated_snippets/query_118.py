@@ -1,29 +1,15 @@
-# Generated: 2025-03-19 13:04:56.114996
-# Result: [('Electronics', 'Laptop', 1200, 1), ('Electronics', 'Smartphone', 800, 2), ('Clothing', 'Pants', 75, 1), ('Clothing', 'Shirt', 50, 2)]
+# Generated: 2025-03-19 13:05:51.271032
+# Result: [([1, 4, 9, 16, 25],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create product sales data
-conn.execute('''
-CREATE TABLE product_sales AS
-SELECT * FROM (VALUES
-    ('Electronics', 'Laptop', 1200),
-    ('Electronics', 'Smartphone', 800),
-    ('Electronics', 'Headphones', 200),
-    ('Clothing', 'Shirt', 50),
-    ('Clothing', 'Pants', 75)
-) AS t(category, product, sales);
-''')
+# Create sample array of numbers
+conn.execute('CREATE TABLE numbers (arr INTEGER[])')
+conn.execute('INSERT INTO numbers VALUES ([1, 2, 3, 4, 5])')
 
-# Use QUALIFY to get top 2 products per category
-result = conn.execute('''
-SELECT category, product, sales,
-       RANK() OVER (PARTITION BY category ORDER BY sales DESC) as sales_rank
-FROM product_sales
-QUALIFY sales_rank <= 2
-''').fetchall()
+# Use array_transform to square each element
+result = conn.execute('SELECT array_transform(arr, x -> x * x) as squared_arr FROM numbers').fetchall()
 
-for row in result:
-    print(row)
+print(result)  # Expected: [[1, 4, 9, 16, 25]]
