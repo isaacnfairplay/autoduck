@@ -1,30 +1,39 @@
-# Generated: 2025-03-19 12:57:13.307314
-# Result: [('Electronics', 'Laptop', 1200, 1), ('Electronics', 'Smartphone', 800, 2), ('Clothing', 'Jacket', 120, 1), ('Clothing', 'Pants', 75, 2)]
+# Generated: 2025-03-19 12:58:06.306747
+# Result: [(1, 'Alice', None, 'Alice'), (2, 'Bob', 1, 'Alice -> Bob'), (3, 'Charlie', 1, 'Alice -> Charlie'), (4, 'David', 2, 'Alice -> Bob -> David'), (5, 'Eve', 3, 'Alice -> Charlie -> Eve')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales data
+# Create employee hierarchy table
 conn.execute('''
-CREATE TABLE product_sales AS
-SELECT * FROM (VALUES
-    ('Electronics', 'Laptop', 1200),
-    ('Electronics', 'Smartphone', 800),
-    ('Electronics', 'Headphones', 200),
-    ('Electronics', 'Tablet', 500),
-    ('Clothing', 'Shirt', 50),
-    ('Clothing', 'Pants', 75),
-    ('Clothing', 'Jacket', 120)
-) AS t(category, product, sales);
+CREATE TABLE employees (
+    id INT,
+    name VARCHAR,
+    manager_id INT
+);
+
+INSERT INTO employees VALUES
+    (1, 'Alice', NULL),
+    (2, 'Bob', 1),
+    (3, 'Charlie', 1),
+    (4, 'David', 2),
+    (5, 'Eve', 3)
 ''')
 
-# Use QUALIFY to get top 2 products per category
+# Recursive CTE to find reporting hierarchy
 result = conn.execute('''
-SELECT category, product, sales,
-       RANK() OVER (PARTITION BY category ORDER BY sales DESC) as sales_rank
-FROM product_sales
-QUALIFY sales_rank <= 2
+WITH RECURSIVE reporting_chain AS (
+    SELECT id, name, manager_id, name AS path
+    FROM employees WHERE manager_id IS NULL
+    
+    UNION ALL
+    
+    SELECT e.id, e.name, e.manager_id, rc.path || ' -> ' || e.name
+    FROM employees e
+    JOIN reporting_chain rc ON e.manager_id = rc.id
+)
+SELECT * FROM reporting_chain
 ''').fetchall()
 
 for row in result:
