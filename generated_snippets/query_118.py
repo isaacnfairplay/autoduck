@@ -1,27 +1,37 @@
-# Generated: 2025-03-19 11:00:21.304230
+# Generated: 2025-03-19 11:01:25.529939
 # Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create time series data for stock price analysis
+# Create employee hierarchy table
 conn.execute('''
-    CREATE TABLE stock_prices (
-        stock_symbol TEXT,
-        trading_date DATE,
-        closing_price DECIMAL(10,2)
-    );
+CREATE TABLE employees (
+    employee_id INTEGER PRIMARY KEY,
+    name VARCHAR,
+    manager_id INTEGER
+);
 
-    INSERT INTO stock_prices VALUES
-        ('AAPL', '2023-01-01', 145.50),
-        ('AAPL', '2023-01-02', 146.75),
-        ('AAPL', '2023-01-03', 144.25);
+INSERT INTO employees VALUES
+    (1, 'CEO', NULL),
+    (2, 'CTO', 1),
+    (3, 'CFO', 1),
+    (4, 'Senior Engineer', 2),
+    (5, 'Junior Engineer', 4);
 
-    SELECT 
-        stock_symbol,
-        trading_date,
-        closing_price,
-        AVG(closing_price) OVER (PARTITION BY stock_symbol ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as moving_avg
-    FROM stock_prices
+-- Recursive CTE to trace organizational hierarchy
+WITH RECURSIVE org_hierarchy AS (
+    SELECT employee_id, name, manager_id, 0 AS depth
+    FROM employees
+    WHERE manager_id IS NULL
+
+    UNION ALL
+
+    SELECT e.employee_id, e.name, e.manager_id, oh.depth + 1
+    FROM employees e
+    JOIN org_hierarchy oh ON e.manager_id = oh.employee_id
+)
+
+SELECT * FROM org_hierarchy ORDER BY depth, employee_id;
 ''').fetchall()
