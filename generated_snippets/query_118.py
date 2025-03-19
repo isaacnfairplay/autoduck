@@ -1,10 +1,28 @@
-# Generated: 2025-03-19 13:15:54.627675
-# Result: [(1, 'Alice', 'Alice'), (2, 'Bob', 'Alice -> Bob'), (3, 'Charlie', 'Alice -> Charlie'), (4, 'David', 'Alice -> Bob -> David'), (5, 'Eve', 'Alice -> Charlie -> Eve')]
+# Generated: 2025-03-19 13:17:36.777805
+# Result: [('South', 'Gadget', Decimal('7500.000')), ('West', 'Gadget', Decimal('6100.000')), ('East', 'Widget', Decimal('3200.000')), ('North', 'Widget', Decimal('5000.000'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
-conn.execute('CREATE TABLE nums(x INTEGER)')
-conn.execute('INSERT INTO nums VALUES (1), (2), (3), (4), (5)')
-rel = conn.sql('SELECT x, x*x as squared FROM nums')
-print(rel.execute().fetchall())
+
+# Create geographic sales table
+conn.execute('CREATE TABLE geo_sales (region TEXT, product TEXT, sales_amount DECIMAL)')
+conn.execute('''INSERT INTO geo_sales VALUES
+    ('North', 'Widget', 5000),
+    ('South', 'Gadget', 7500),
+    ('East', 'Widget', 3200),
+    ('West', 'Gadget', 6100)''')
+
+# Demonstrate QUALIFY window function with ranking
+result = conn.execute('''
+SELECT region, product, sales_amount
+FROM (
+    SELECT *,
+    RANK() OVER (PARTITION BY region ORDER BY sales_amount DESC) as sales_rank
+    FROM geo_sales
+) ranked_sales
+WHERE sales_rank = 1
+''').fetchall()
+
+for row in result:
+    print(row)
