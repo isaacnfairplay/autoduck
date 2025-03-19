@@ -1,36 +1,28 @@
-# Generated: 2025-03-19 13:22:01.565961
-# Result: [('Engineering', 80000.0, 'David'), ('Sales', 80000.0, 'Bob'), ('Marketing', 55000.0, 'Eve')]
+# Generated: 2025-03-19 13:22:53.501766
+# Result: [(datetime.date(2023, 1, 15), datetime.datetime(2023, 1, 17, 0, 0), 172800.0), (datetime.date(2023, 2, 20), datetime.datetime(2023, 2, 27, 0, 0), 604800.0), (datetime.date(2023, 3, 25), datetime.datetime(2023, 3, 25, 3, 0), 10800.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Nested subquery with lateral join demonstrating correlated aggregation
-conn.execute('''CREATE TABLE departments (dept_id INT, dept_name TEXT)''')
-conn.execute('''CREATE TABLE employees (emp_id INT, name TEXT, salary DECIMAL(10,2), dept_id INT)''')
+# Demonstrate temporal date functions and interval calculations
+conn.execute('''CREATE TABLE events (
+    event_date DATE,
+    duration INTERVAL
+)''')
 
-conn.execute('''INSERT INTO departments VALUES (1, 'Sales'), (2, 'Engineering'), (3, 'Marketing')''')
-conn.execute('''INSERT INTO employees VALUES 
-    (101, 'Alice', 75000, 1), 
-    (102, 'Bob', 85000, 1), 
-    (103, 'Charlie', 95000, 2), 
-    (104, 'David', 65000, 2), 
-    (105, 'Eve', 55000, 3)''')
+conn.execute('''INSERT INTO events VALUES
+    ('2023-01-15', INTERVAL 2 DAYS),
+    ('2023-02-20', INTERVAL 1 WEEK),
+    ('2023-03-25', INTERVAL 3 HOURS)''')
 
 result = conn.execute('''
 SELECT 
-    d.dept_name, 
-    avg_salary, 
-    top_earner_name
-FROM departments d
-CROSS JOIN LATERAL (
-    SELECT 
-        AVG(salary) as avg_salary,
-        MAX(name) as top_earner_name
-    FROM employees e
-    WHERE e.dept_id = d.dept_id
-) dept_stats
+    event_date, 
+    event_date + duration AS end_date,
+    EXTRACT(EPOCH FROM duration) AS duration_seconds
+FROM events
 ''').fetchall()
 
 for row in result:
-    print(f"Department: {row[0]}, Avg Salary: ${row[1]:.2f}, Top Earner: {row[2]}")
+    print(f"Start: {row[0]}, End: {row[1]}, Duration: {row[2]} seconds")
