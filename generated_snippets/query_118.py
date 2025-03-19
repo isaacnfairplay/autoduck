@@ -1,28 +1,30 @@
-# Generated: 2025-03-19 15:34:10.118447
-# Result: [('Product A', 10, '2023-01-01', 4, 10.0), ('Product A', 15, '2023-01-02', 3, 12.5), ('Product B', 20, '2023-01-03', 2, 20.0), ('Product B', 25, '2023-01-04', 1, 22.5)]
+# Generated: 2025-03-19 15:35:03.028149
+# Result: [('Senior Developer', 0), ('Engineering Manager', 1), ('VP Engineering', 2), ('CEO', 3)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Complex window function with ranking and moving aggregation
+# Demonstrate hierarchical data querying with recursive Common Table Expression
 result = conn.sql("""
-    WITH sales_data AS (
-        SELECT 'Product A' as product, 10 as quantity, '2023-01-01' as sale_date
-        UNION ALL
-        SELECT 'Product A', 15, '2023-01-02'
-        UNION ALL
-        SELECT 'Product B', 20, '2023-01-03'
-        UNION ALL
-        SELECT 'Product B', 25, '2023-01-04'
-    )
-    SELECT 
-        product, 
-        quantity,
-        sale_date,
-        RANK() OVER (ORDER BY quantity DESC) as sales_rank,
-        AVG(quantity) OVER (PARTITION BY product ORDER BY sale_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as rolling_avg
-    FROM sales_data
+WITH RECURSIVE organizational_hierarchy(id, name, manager_id) AS (
+    SELECT 1, 'CEO', NULL
+    UNION ALL
+    SELECT 2, 'VP Engineering', 1
+    UNION ALL
+    SELECT 3, 'Engineering Manager', 2
+    UNION ALL
+    SELECT 4, 'Senior Developer', 3
+),
+reporting_chain AS (
+    SELECT id, name, manager_id, 0 as depth
+    FROM organizational_hierarchy WHERE name = 'Senior Developer'
+    UNION ALL
+    SELECT o.id, o.name, o.manager_id, rc.depth + 1
+    FROM organizational_hierarchy o
+    JOIN reporting_chain rc ON o.id = rc.manager_id
+)
+SELECT name, depth FROM reporting_chain ORDER BY depth
 """).fetchall()
 
-print(result)
+print(result)  # Will show reporting chain from Senior Developer up
