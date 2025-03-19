@@ -1,25 +1,23 @@
-# Generated: 2025-03-19 09:50:14.497938
-# Result: [('Electronics', 'Laptop', 500), ('Electronics', 'Phone', 750), ('Clothing', 'Shirt', 300), ('Clothing', 'Pants', 450), ('Books', 'Novel', 200), ('Books', 'Textbook', 600)]
+# Generated: 2025-03-19 09:51:04.865351
+# Result: [('Electronics', 'Laptop', 1200), ('Electronics', 'Phone', 800)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
 conn.sql("""
-CREATE TABLE sales AS
+CREATE TABLE products AS
 SELECT * FROM (VALUES
-    ('Electronics', 'Laptop', 500),
-    ('Electronics', 'Phone', 750),
-    ('Clothing', 'Shirt', 300),
-    ('Clothing', 'Pants', 450),
-    ('Books', 'Novel', 200),
-    ('Books', 'Textbook', 600)
-) t(category, product, amount)
+    ('Electronics', 'Laptop', 1200),
+    ('Electronics', 'Phone', 800),
+    ('Clothing', 'T-Shirt', 50)
+) t(category, product_name, price)
 """)
 
 result = conn.sql("""
-SELECT category, product, amount
-FROM sales
+SELECT category, product_name, price
+FROM products
+WHERE category = 'Electronics'
 """).fetchall()
 
 print(result)
