@@ -1,12 +1,13 @@
-# Generated: 2025-03-19 17:57:18.537494
-# Result: [([2, 3, 4, 5, 6],)]
+# Generated: 2025-03-19 17:58:11.130182
+# Result: [([2, 3, 4, 5],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
+# Create array and use array_transform to increment each element
 result = conn.execute('''
-    SELECT array_transform([1, 2, 3, 4, 5], x -> x + 1) AS incremented_array
+    SELECT array_transform([1, 2, 3, 4], x -> x + 1) AS incremented_array
 ''').fetchall()
 
-print(result)  # Expected output: [[2, 3, 4, 5, 6]]
+print(result[0][0])  # Outputs: [2, 3, 4, 5]
