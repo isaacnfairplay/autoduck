@@ -1,33 +1,19 @@
-# Generated: 2025-03-19 14:32:06.044258
-# Result: [(3, 'Electronics', Decimal('750.75'), 1), (1, 'Electronics', Decimal('500.50'), 2), (4, 'Books', Decimal('100.00'), 1), (2, 'Clothing', Decimal('200.25'), 1)]
+# Generated: 2025-03-19 14:32:58.027124
+# Result: ('"Alice"', '30', '"New York"')
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample sales data with product details
-conn.execute('''
-    CREATE TABLE sales (
-        product_id INTEGER,
-        category VARCHAR,
-        amount DECIMAL(10,2)
-    );
-    INSERT INTO sales VALUES
-        (1, 'Electronics', 500.50),
-        (2, 'Clothing', 200.25),
-        (3, 'Electronics', 750.75),
-        (4, 'Books', 100.00)
-''')
+# Create a nested JSON data structure and extract nested values
+conn.execute("CREATE TABLE user_profiles AS SELECT * FROM (VALUES ('{\"name\": \"Alice\", \"details\": {\"age\": 30, \"city\": \"New York\"}}')) AS t(profile)")
 
-# Use window functions to rank products within categories
-result = conn.execute('''
+result = conn.execute("""
     SELECT 
-        product_id, 
-        category, 
-        amount,
-        RANK() OVER (PARTITION BY category ORDER BY amount DESC) as category_rank
-    FROM sales
-''').fetchall()
+        json_extract(profile, '$.name') AS name,
+        json_extract(profile, '$.details.age') AS age,
+        json_extract(profile, '$.details.city') AS city
+    FROM user_profiles
+""").fetchone()
 
-for row in result:
-    print(f"Product {row[0]} in {row[1]}: ${row[2]} (Rank: {row[3]})")
+print(f"Name: {result[0]}, Age: {result[1]}, City: {result[2]}")
