@@ -1,4 +1,4 @@
-# Generated: 2025-03-19 11:09:16.542571
+# Generated: 2025-03-19 11:10:56.571493
 # Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
 # Valid: True
 import duckdb
@@ -17,5 +17,5 @@ INSERT INTO employees VALUES
     (2, 'Bob', 1),
     (3, 'Charlie', 1);
 
-SELECT * FROM employees;
-''')
+SELECT * FROM employees WHERE manager_id IS NULL;
+''').fetchall()
