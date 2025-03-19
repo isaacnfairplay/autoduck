@@ -1,5 +1,5 @@
-# Generated: 2025-03-19 12:28:22.092236
-# Result: [('Shirt', Decimal('50.00'))]
+# Generated: 2025-03-19 12:29:14.248092
+# Result: [('Pants', Decimal('75.00'))]
 # Valid: True
 import duckdb
 
@@ -23,7 +23,7 @@ INSERT INTO clothing VALUES
 result = conn.execute('''
 SELECT product, price
 FROM clothing
-WHERE category = 'Clothing' AND product = 'Shirt'
+WHERE category = 'Clothing' AND product = 'Pants'
 ''').fetchall()
 
 for row in result:
