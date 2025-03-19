@@ -1,32 +1,18 @@
-# Generated: 2025-03-19 13:08:28.283314
-# Result: [(1, 'view', datetime.datetime(2023, 6, 15, 10, 15), None), (1, 'click', datetime.datetime(2023, 6, 15, 10, 16), 'view'), (2, 'view', datetime.datetime(2023, 6, 15, 11, 20), None), (2, 'purchase', datetime.datetime(2023, 6, 15, 11, 22), 'view')]
+# Generated: 2025-03-19 13:11:46.709875
+# Result: [(1,), (2,), (3,), (4,), (5,), (6,), (7,), (8,), (9,), (10,)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate a table of user interactions
-conn.execute('''CREATE TABLE interactions (
-    user_id INT,
-    interaction_type VARCHAR,
-    timestamp TIMESTAMP
-)''')
-
-conn.execute('''INSERT INTO interactions VALUES
-    (1, 'view', '2023-06-15 10:15:00'),
-    (1, 'click', '2023-06-15 10:16:00'),
-    (2, 'view', '2023-06-15 11:20:00'),
-    (2, 'purchase', '2023-06-15 11:22:00')
-''')
-
-# Demonstrate consecutive event tracking using window functions
-result = conn.execute('''SELECT
-    user_id,
-    interaction_type,
-    timestamp,
-    LAG(interaction_type) OVER (PARTITION BY user_id ORDER BY timestamp) as prev_interaction
-FROM interactions
+# Create a recursive Common Table Expression (CTE) to generate a sequence
+result = conn.execute('''
+WITH RECURSIVE sequence(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1 FROM sequence WHERE n < 10
+)
+SELECT * FROM sequence
 ''').fetchall()
 
-for row in result:
-    print(row)
+print(result)  # Will print numbers 1 through 10
