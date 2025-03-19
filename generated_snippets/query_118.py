@@ -1,20 +1,34 @@
-# Generated: 2025-03-19 17:27:26.930878
-# Result: [('Simone Biles', 'USA', 'Gymnastics', 3, 1), ('Katie Ledecky', 'USA', 'Swimming', 3, 1), ('Michael Phelps', 'USA', 'Swimming', 3, 1)]
+# Generated: 2025-03-19 17:28:20.391787
+# Result: [('Marketing', 'David', Decimal('65000.00'), 'David', 1), ('Marketing', 'Bob', Decimal('60000.00'), 'David', 2), ('Sales', 'Charlie', Decimal('55000.00'), 'Charlie', 3), ('Sales', 'Alice', Decimal('50000.00'), 'Charlie', 4)]
 # Valid: True
-# Variable squared: Type: list
-# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
-# Variable square_array: Type: function
-# Variable original: Type: list
-# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
 import duckdb
 
-conn = duckdb.connect(':memory:')
+con = duckdb.connect(':memory:')
 
-def square_array(numbers):
-    result = conn.execute("SELECT array_transform(?, x -> x * x) AS squared_numbers", [numbers]).fetchone()[0]
-    return result
+# Create a nested subquery with lateral join and window functions
+con.execute('''
+CREATE TABLE employees (
+    id INT,
+    name TEXT,
+    department TEXT,
+    salary DECIMAL(10,2)
+);
 
-original = [1, 2, 3, 4, 5]
-squared = square_array(original)
-print(f"Original: {original}")
-print(f"Squared: {squared}")
+INSERT INTO employees VALUES
+    (1, 'Alice', 'Sales', 50000),
+    (2, 'Bob', 'Marketing', 60000),
+    (3, 'Charlie', 'Sales', 55000),
+    (4, 'David', 'Marketing', 65000);
+
+SELECT 
+    department, 
+    name, 
+    salary,
+    FIRST_VALUE(name) OVER (PARTITION BY department ORDER BY salary DESC) as top_earner,
+    DENSE_RANK() OVER (ORDER BY salary DESC) as salary_rank
+FROM employees
+''')
+
+result = con.fetchall()
+for row in result:
+    print(row)
