@@ -1,38 +1,52 @@
-# Generated: 2025-03-19 09:34:49.256872
-# Result: [('Electronics', 'North', Decimal('3500.50'), 2), ('Electronics', 'South', Decimal('1200.75'), 1), ('Clothing', 'East', Decimal('800.25'), 1), ('Books', 'West', Decimal('450.00'), 1)]
+# Generated: 2025-03-19 09:35:43.025361
+# Result: [('Engineering', 'Bob', Decimal('160000.00'), 80000.0), ('Sales', 'Charlie', Decimal('65000.00'), 65000.0), ('Marketing', 'David', Decimal('70000.00'), 70000.0), ('Engineering', 'Alice', Decimal('160000.00'), 80000.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales dataset with multi-category analysis
-conn.sql("""
-CREATE TABLE sales (
-    sale_id INTEGER,
-    product_category VARCHAR,
-    region VARCHAR,
-    sale_amount DECIMAL(10,2),
-    sale_date DATE
+# Create employee and department tables
+conn.sql('''
+CREATE TABLE departments (
+    dept_id INTEGER PRIMARY KEY,
+    dept_name VARCHAR
 );
 
-INSERT INTO sales VALUES
-    (1, 'Electronics', 'North', 1500.50, '2023-01-15'),
-    (2, 'Electronics', 'South', 1200.75, '2023-02-20'),
-    (3, 'Clothing', 'East', 800.25, '2023-03-10'),
-    (4, 'Books', 'West', 450.00, '2023-04-05'),
-    (5, 'Electronics', 'North', 2000.00, '2023-05-12')
-""");
+CREATE TABLE employees (
+    emp_id INTEGER PRIMARY KEY,
+    name VARCHAR,
+    dept_id INTEGER,
+    salary DECIMAL(10,2)
+);
 
-# Analyze total sales by category and region
-result = conn.sql("""
+INSERT INTO departments VALUES
+    (1, 'Engineering'),
+    (2, 'Sales'),
+    (3, 'Marketing');
+
+INSERT INTO employees VALUES
+    (101, 'Alice', 1, 75000),
+    (102, 'Bob', 1, 85000),
+    (103, 'Charlie', 2, 65000),
+    (104, 'David', 3, 70000);
+''');
+
+# Use lateral join to compute department-level salary statistics
+result = conn.sql('''
 SELECT 
-    product_category, 
-    region, 
-    SUM(sale_amount) as total_sales,
-    COUNT(*) as sale_count
-FROM sales
-GROUP BY product_category, region
-ORDER BY total_sales DESC
-""").fetchall()
+    d.dept_name,
+    e.name,
+    total_dept_salary,
+    avg_dept_salary
+FROM departments d
+LEFT JOIN LATERAL (
+    SELECT 
+        name,
+        SUM(salary) OVER (PARTITION BY dept_id) as total_dept_salary,
+        AVG(salary) OVER (PARTITION BY dept_id) as avg_dept_salary
+    FROM employees
+    WHERE dept_id = d.dept_id
+) e ON TRUE
+''').fetchall()
 
 print(result)
