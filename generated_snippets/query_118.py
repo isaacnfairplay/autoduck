@@ -1,29 +1,33 @@
-# Generated: 2025-03-19 11:19:35.044960
+# Generated: 2025-03-19 11:20:33.361529
 # Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create time series table tracking inventory changes
-conn.sql('''
-CREATE TABLE inventory_log (
-    product_id INTEGER,
-    change_time TIMESTAMP,
-    quantity_change INTEGER
+conn.execute('''
+CREATE TABLE employees (
+    employee_id INTEGER PRIMARY KEY,
+    name VARCHAR,
+    manager_id INTEGER
 );
 
-INSERT INTO inventory_log VALUES
-    (1, '2023-07-01 10:00:00', 50),
-    (1, '2023-07-01 11:00:00', -10),
-    (1, '2023-07-01 12:00:00', 20);
+INSERT INTO employees VALUES
+    (1, 'Alice', NULL),
+    (2, 'Bob', 1),
+    (3, 'Charlie', 1);
 
--- Calculate cumulative inventory and rate of change
-SELECT
-    product_id,
-    change_time,
-    quantity_change,
-    SUM(quantity_change) OVER (PARTITION BY product_id ORDER BY change_time) as cumulative_inventory,
-    quantity_change - LAG(quantity_change) OVER (PARTITION BY product_id ORDER BY change_time) as inventory_delta
-FROM inventory_log
-''').show()
+WITH RECURSIVE org_hierarchy AS (
+    SELECT employee_id, name, manager_id, 0 AS level
+    FROM employees
+    WHERE manager_id IS NULL
+
+    UNION ALL
+
+    SELECT e.employee_id, e.name, e.manager_id, h.level + 1
+    FROM employees e
+    JOIN org_hierarchy h ON e.manager_id = h.employee_id
+)
+
+SELECT * FROM org_hierarchy;
+''').fetchall()
