@@ -1,34 +1,41 @@
-# Generated: 2025-03-19 16:37:24.703695
-# Result: [(2, 'Electronics', Decimal('750.50'), 1, 1), (4, 'Electronics', Decimal('600.25'), 2, 2), (1, 'Electronics', Decimal('500.00'), 3, 3), (5, 'Clothing', Decimal('300.00'), 1, 4), (3, 'Clothing', Decimal('250.75'), 2, 5)]
+# Generated: 2025-03-19 16:39:09.532993
+# Result: [(1, 'John', None, 0), (2, 'Alice', 1, 1), (3, 'Bob', 1, 1), (4, 'Charlie', 2, 2), (5, 'David', 3, 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
+# Create organizational hierarchy table
 conn.execute('''
-CREATE TABLE sales (
-    product_id INTEGER,
-    category TEXT,
-    sale_amount DECIMAL(10,2)
+CREATE TABLE employees (
+    employee_id INTEGER PRIMARY KEY,
+    name TEXT,
+    manager_id INTEGER
 );
 ''')
 
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    (1, 'Electronics', 500.00),
-    (2, 'Electronics', 750.50),
-    (3, 'Clothing', 250.75),
-    (4, 'Electronics', 600.25),
-    (5, 'Clothing', 300.00)
+# Insert hierarchical data
+conn.executemany('INSERT INTO employees VALUES (?, ?, ?)', [
+    (1, 'John', None),   # CEO
+    (2, 'Alice', 1),     # Reports to John
+    (3, 'Bob', 1),       # Reports to John
+    (4, 'Charlie', 2),   # Reports to Alice
+    (5, 'David', 3)      # Reports to Bob
 ])
 
+# Recursive CTE to find full reporting chain
 result = conn.execute('''
-SELECT 
-    product_id, 
-    category, 
-    sale_amount,
-    RANK() OVER (PARTITION BY category ORDER BY sale_amount DESC) as category_rank,
-    DENSE_RANK() OVER (ORDER BY sale_amount DESC) as overall_dense_rank
-FROM sales
+WITH RECURSIVE reporting_chain AS (
+    SELECT employee_id, name, manager_id, 0 as depth
+    FROM employees WHERE manager_id IS NULL
+
+    UNION ALL
+
+    SELECT e.employee_id, e.name, e.manager_id, rc.depth + 1
+    FROM employees e
+    JOIN reporting_chain rc ON e.manager_id = rc.employee_id
+)
+SELECT * FROM reporting_chain
 ''').fetchall()
 
 print(result)
