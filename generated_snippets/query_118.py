@@ -1,35 +1,30 @@
-# Generated: 2025-03-19 11:36:17.974154
-# Result: [('Paris', 'France', 2140000, 1), ('Tokyo', 'Japan', 13900000, 1), ('London', 'UK', 9000000, 1), ('New York', 'USA', 8400000, 1)]
+# Generated: 2025-03-19 11:37:09.492903
+# Result: [('Electronics', 1500, 39.473684210526315), ('Electronics', 2300, 60.526315789473685), ('Clothing', 1000, 36.36363636363637), ('Clothing', 1750, 63.63636363636363)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table with geographic data
+# Create sales data table
 conn.execute('''
-CREATE TABLE cities (
-    city VARCHAR,
-    country VARCHAR,
-    population INTEGER
-);
-
-INSERT INTO cities VALUES
-('New York', 'USA', 8400000),
-('London', 'UK', 9000000),
-('Tokyo', 'Japan', 13900000),
-('Paris', 'France', 2140000);
+CREATE TABLE sales AS
+SELECT 'Electronics' as category, 1500 as amount
+UNION ALL
+SELECT 'Electronics', 2300
+UNION ALL
+SELECT 'Clothing', 1000
+UNION ALL
+SELECT 'Clothing', 1750
 ''')
 
-# Rank cities by population within their country
+# Calculate percentage of total sales within each category
 result = conn.execute('''
-SELECT
-    city,
-    country,
-    population,
-    DENSE_RANK() OVER (PARTITION BY country ORDER BY population DESC) as population_rank
-FROM cities
-ORDER BY country, population_rank
+SELECT 
+    category, 
+    amount,
+    amount * 100.0 / SUM(amount) OVER (PARTITION BY category) as category_percentage
+FROM sales
 ''').fetchall()
 
 for row in result:
-    print(f"{row[0]} ({row[1]}): {row[2]} people - Rank: {row[3]}")
+    print(f"Category: {row[0]}, Amount: {row[1]}, Percentage: {row[2]:.2f}%")
