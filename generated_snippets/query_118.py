@@ -1,10 +1,12 @@
-# Generated: 2025-03-19 08:15:19.215790
-# Result: [('Clothing', 'Pants', Decimal('100.00'))]
+# Generated: 2025-03-19 08:16:10.345776
+# Result: [('Electronics', 'Tablet', Decimal('500.00'))]
 # Valid: True
 import duckdb
 
+# Create in-memory database
 conn = duckdb.connect(':memory:')
 
+# Create product sales table with Electronics and Tablet
 conn.execute('''
 CREATE TABLE product_sales (
     category VARCHAR,
@@ -13,13 +15,13 @@ CREATE TABLE product_sales (
 );
 
 INSERT INTO product_sales VALUES
-    ('Clothing', 'Shirt', 50.00),
-    ('Clothing', 'Pants', 100.00);
+    ('Electronics', 'Tablet', 500.00);
 ''')
 
+# Query Electronics Tablet
 result = conn.execute('''
 SELECT * FROM product_sales
-WHERE category = 'Clothing' AND product = 'Pants'
+WHERE category = 'Electronics' AND product = 'Tablet'
 ''').fetchall()
 
 for row in result:
