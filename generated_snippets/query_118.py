@@ -1,5 +1,5 @@
-# Generated: 2025-03-19 12:37:13.271081
-# Result: [('Laptop', 'Electronics', Decimal('1200.00'), 1), ('Chair', 'Furniture', Decimal('250.50'), 2), ('Shirt', 'Clothing', Decimal('50.00'), 3)]
+# Generated: 2025-03-19 12:38:05.233816
+# Result: [('Laptop', 'Electronics', Decimal('1200.00'), 1), ('Smartphone', 'Electronics', Decimal('800.00'), 2), ('Chair', 'Furniture', Decimal('250.50'), 1), ('Pants', 'Clothing', Decimal('75.00'), 1), ('Shirt', 'Clothing', Decimal('50.00'), 2)]
 # Valid: True
 import duckdb
 
@@ -14,8 +14,10 @@ CREATE TABLE sales (
 
 INSERT INTO sales VALUES
     ('Laptop', 'Electronics', 1200.00),
+    ('Smartphone', 'Electronics', 800.00),
     ('Shirt', 'Clothing', 50.00),
-    ('Chair', 'Furniture', 250.50);
+    ('Pants', 'Clothing', 75.00),
+    ('Chair', 'Furniture', 250.50)
 ''')
 
 result = conn.execute('''
@@ -23,7 +25,7 @@ SELECT
     product, 
     category, 
     amount,
-    RANK() OVER (ORDER BY amount DESC) as overall_rank
+    RANK() OVER (PARTITION BY category ORDER BY amount DESC) as category_rank
 FROM sales
 ''').fetchall()
 
