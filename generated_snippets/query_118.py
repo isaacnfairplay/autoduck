@@ -1,21 +1,32 @@
-# Generated: 2025-03-19 10:29:37.571106
-# Result: [(0, 0), (1, 1), (2, 1), (3, 2), (4, 3), (5, 5), (6, 8), (7, 13), (8, 21), (9, 34), (10, 55)]
+# Generated: 2025-03-19 10:30:30.203581
+# Result: [(datetime.date(2023, 1, 1), 'Widget', Decimal('100.000'), 100.0), (datetime.date(2023, 1, 2), 'Widget', Decimal('150.000'), 125.0), (datetime.date(2023, 1, 3), 'Widget', Decimal('200.000'), 150.0), (datetime.date(2023, 1, 4), 'Widget', Decimal('180.000'), 176.66666666666666)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a recursive common table expression (CTE) to generate a Fibonacci sequence
+# Create sales data with dates
+conn.execute('''
+    CREATE TABLE sales (date DATE, product TEXT, amount DECIMAL);
+    INSERT INTO sales VALUES 
+        ('2023-01-01', 'Widget', 100),
+        ('2023-01-02', 'Widget', 150),
+        ('2023-01-03', 'Widget', 200),
+        ('2023-01-04', 'Widget', 180)
+''');
+
+# Calculate 3-day rolling average
 result = conn.execute('''
-    WITH RECURSIVE fibonacci(n, a, b) AS (
-        SELECT 0, 0, 1
-        UNION ALL
-        SELECT n + 1, b, a + b
-        FROM fibonacci
-        WHERE n < 10
-    )
-    SELECT n, a AS fibonacci_number
-    FROM fibonacci
+    SELECT 
+        date, 
+        product, 
+        amount,
+        AVG(amount) OVER (
+            PARTITION BY product 
+            ORDER BY date 
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rolling_avg
+    FROM sales
 ''').fetchall()
 
 for row in result:
