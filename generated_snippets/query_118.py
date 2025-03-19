@@ -1,34 +1,33 @@
-# Generated: 2025-03-19 08:10:11.242273
-# Result: [(1, Decimal('85.50'), Decimal('92.00')), (2, Decimal('78.50'), Decimal('88.00'))]
+# Generated: 2025-03-19 08:11:03.556346
+# Result: [('Laptop', 'Electronics', 10, Decimal('1200.50')), ('Smartphone', 'Electronics', 15, Decimal('800.25')), ('Shoes', 'Clothing', 20, Decimal('150.00'))]
 # Valid: True
 import duckdb
 
+# Create an in-memory database connection
 conn = duckdb.connect(':memory:')
 
-# Create a table of student test scores
-conn.execute('''
-CREATE TABLE student_scores (
-    student_id INT,
-    subject VARCHAR,
-    score DECIMAL(5,2)
-);
-
-INSERT INTO student_scores VALUES
-    (1, 'Math', 85.5),
-    (1, 'Science', 92.0),
-    (2, 'Math', 78.5),
-    (2, 'Science', 88.0);
+# Create sales table using CREATE TABLE AS with a derived query
+conn.execute('''CREATE TABLE sales AS
+SELECT
+    'Laptop' as product,
+    'Electronics' as category,
+    10 as quantity,
+    1200.50 as price
+UNION ALL
+SELECT
+    'Smartphone' as product,
+    'Electronics' as category,
+    15 as quantity,
+    800.25 as price
+UNION ALL
+SELECT
+    'Shoes' as product,
+    'Clothing' as category,
+    20 as quantity,
+    150.00 as price
 ''')
 
-# Use PIVOT to transform subject scores into columns
-result = conn.execute('''
-SELECT 
-    student_id,
-    MAX(CASE WHEN subject = 'Math' THEN score END) as math_score,
-    MAX(CASE WHEN subject = 'Science' THEN score END) as science_score
-FROM student_scores
-GROUP BY student_id
-''').fetchall()
-
+# Verify table creation
+result = conn.execute('SELECT * FROM sales').fetchall()
 for row in result:
     print(row)
