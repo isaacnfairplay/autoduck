@@ -1,29 +1,39 @@
-# Generated: 2025-03-19 18:46:12.980783
-# Result: [('Laptop', 12, 1), ('Phone', 10, 2), ('Tablet', 3, 3)]
+# Generated: 2025-03-19 18:54:43.321071
+# Result: [('East', 1, Decimal('48000.00'), Decimal('48000.00')), ('East', 2, Decimal('53000.00'), Decimal('101000.00')), ('North', 1, Decimal('50000.00'), Decimal('50000.00')), ('North', 2, Decimal('55000.00'), Decimal('105000.00')), ('South', 1, Decimal('45000.00'), Decimal('45000.00')), ('South', 2, Decimal('52000.00'), Decimal('97000.00'))]
 # Valid: True
 import duckdb
 
+# Create an in-memory database and load sample sales data
 conn = duckdb.connect(':memory:')
 
-# Create sales table
-conn.execute('CREATE TABLE sales (product VARCHAR, quantity INT, sale_date DATE)')
+# Create a sales table with region and quarterly revenue
+conn.sql("""
+    CREATE TABLE sales (
+        region VARCHAR,
+        quarter INTEGER,
+        revenue DECIMAL(10,2)
+    );
 
-# Insert sample sales data
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    ('Laptop', 5, '2023-01-15'),
-    ('Phone', 10, '2023-02-20'),
-    ('Tablet', 3, '2023-03-10'),
-    ('Laptop', 7, '2023-04-05')
-])
+    INSERT INTO sales VALUES
+        ('North', 1, 50000.00),
+        ('North', 2, 55000.00),
+        ('South', 1, 45000.00),
+        ('South', 2, 52000.00),
+        ('East', 1, 48000.00),
+        ('East', 2, 53000.00);
+""")
 
-# Rank products by total quantity sold using DENSE_RANK()
-result = conn.execute('''
+# Use window function to calculate running total by region
+result = conn.sql("""
     SELECT 
-        product, 
-        SUM(quantity) as total_quantity,
-        DENSE_RANK() OVER (ORDER BY SUM(quantity) DESC) as sales_rank
+        region, 
+        quarter, 
+        revenue,
+        SUM(revenue) OVER (PARTITION BY region ORDER BY quarter) as cumulative_revenue
     FROM sales
-    GROUP BY product
-''').fetchall()
+    ORDER BY region, quarter
+""").fetchall()
 
-print(result)
+# Print results
+for row in result:
+    print(f"Region: {row[0]}, Quarter: {row[1]}, Revenue: ${row[2]}, Cumulative Revenue: ${row[3]}")
