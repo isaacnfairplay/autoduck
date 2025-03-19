@@ -1,27 +1,40 @@
-# Generated: 2025-03-19 12:14:12.431209
-# Result: [(1, Decimal('22.50'), datetime.datetime(2023, 7, 15, 10, 0), 22.5), (1, Decimal('23.10'), datetime.datetime(2023, 7, 15, 10, 15), 22.8), (2, Decimal('21.80'), datetime.datetime(2023, 7, 15, 10, 0), 21.8), (2, Decimal('22.30'), datetime.datetime(2023, 7, 15, 10, 15), 22.05)]
+# Generated: 2025-03-19 12:15:05.357115
+# Result: [(2, 'Smartphone', Decimal('600.00'), Decimal('10.00'), 540.0), (1, 'Laptop', Decimal('1000.00'), Decimal('15.00'), 850.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a table with sensor temperature readings
-conn.execute('CREATE TABLE temperature_readings (sensor_id INT, reading DECIMAL(5,2), timestamp TIMESTAMP)')
-conn.executemany('INSERT INTO temperature_readings VALUES (?, ?, ?)', [
-    (1, 22.5, '2023-07-15 10:00:00'),
-    (1, 23.1, '2023-07-15 10:15:00'),
-    (2, 21.8, '2023-07-15 10:00:00'),
-    (2, 22.3, '2023-07-15 10:15:00')
+# Create products and discounts tables
+conn.execute('CREATE TABLE products(product_id INT, name TEXT, price DECIMAL(10,2))')
+conn.execute('CREATE TABLE discount_rules(min_price DECIMAL(10,2), discount_percentage DECIMAL(5,2))')
+
+conn.executemany('INSERT INTO products VALUES (?, ?, ?)', [
+    (1, 'Laptop', 1000.00),
+    (2, 'Smartphone', 600.00),
+    (3, 'Tablet', 400.00)
 ])
 
-# Use window function to calculate rolling average temperature per sensor
+conn.executemany('INSERT INTO discount_rules VALUES (?, ?)', [
+    (500.00, 10.0),
+    (1000.00, 15.0)
+])
+
+# Use LATERAL JOIN to dynamically apply discounts
 result = conn.execute('''
     SELECT 
-        sensor_id, 
-        reading, 
-        timestamp,
-        AVG(reading) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as rolling_avg
-    FROM temperature_readings
+        p.product_id, 
+        p.name, 
+        p.price, 
+        d.discount_percentage,
+        p.price * (1 - d.discount_percentage/100) as discounted_price
+    FROM products p, LATERAL (
+        SELECT discount_percentage 
+        FROM discount_rules 
+        WHERE p.price >= min_price 
+        ORDER BY discount_percentage DESC 
+        LIMIT 1
+    ) d
 ''').fetchall()
 
 print(result)
