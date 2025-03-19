@@ -1,25 +1,29 @@
-# Generated: 2025-03-19 09:53:33.094306
-# Result: [('Electronics', 'Laptop', 1200), ('Electronics', 'Phone', 800)]
+# Generated: 2025-03-19 09:54:24.688038
+# Result: [('Electronics', 'Phone', 750, 1), ('Electronics', 'Laptop', 500, 2), ('Books', 'Textbook', 600, 1), ('Books', 'Novel', 200, 2), ('Clothing', 'Pants', 450, 1), ('Clothing', 'Shirt', 300, 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sample table with tuple data
 conn.sql("""
-CREATE TABLE products AS
+CREATE TABLE sales AS
 SELECT * FROM (VALUES
-    ('Electronics', 'Laptop', 1200),
-    ('Electronics', 'Phone', 800),
-    ('Clothing', 'T-Shirt', 50)
-) t(category, product_name, price)
+    ('Electronics', 'Laptop', 500),
+    ('Electronics', 'Phone', 750),
+    ('Clothing', 'Shirt', 300),
+    ('Clothing', 'Pants', 450),
+    ('Books', 'Novel', 200),
+    ('Books', 'Textbook', 600)
+) t(category, product, amount)
 """)
 
-# Query products in the Electronics category
 result = conn.sql("""
-SELECT category, product_name, price
-FROM products
-WHERE category = 'Electronics'
+SELECT
+    category,
+    product,
+    amount,
+    RANK() OVER (PARTITION BY category ORDER BY amount DESC) as sales_rank
+FROM sales
 """).fetchall()
 
 print(result)
