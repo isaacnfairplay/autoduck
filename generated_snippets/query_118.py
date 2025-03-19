@@ -1,24 +1,37 @@
-# Generated: 2025-03-19 08:26:10.384594
-# Result: [('Laptop', 'Electronics', 10, Decimal('1200.50')), ('Smartphone', 'Electronics', 15, Decimal('800.25')), ('Shoes', 'Clothing', 20, Decimal('150.00'))]
+# Generated: 2025-03-19 08:27:02.755745
+# Result: [('North', Decimal('50000.00'), 50000.0), ('South', Decimal('45000.00'), 45000.0), ('East', Decimal('30000.00'), 30000.0)]
 # Valid: True
 import duckdb
 
+# Create an in-memory database
 conn = duckdb.connect(':memory:')
 
+# Create sales performance tracking table
 conn.execute('''
-CREATE TABLE sales (
+CREATE TABLE sales_performance (
     product VARCHAR,
-    category VARCHAR,
-    quantity INTEGER,
-    price DECIMAL(10,2)
+    region VARCHAR,
+    sales_amount DECIMAL(10,2),
+    sales_quarter VARCHAR
 );
 
-INSERT INTO sales VALUES
-    ('Laptop', 'Electronics', 10, 1200.50),
-    ('Smartphone', 'Electronics', 15, 800.25),
-    ('Shoes', 'Clothing', 20, 150.00);
-''')
+INSERT INTO sales_performance VALUES
+    ('Laptop', 'North', 50000.00, 'Q2'),
+    ('Smartphone', 'South', 45000.00, 'Q2'),
+    ('Tablet', 'East', 30000.00, 'Q2');
+'''
+)
 
-result = conn.execute('SELECT * FROM sales').fetchall()
+# Analyze regional sales performance
+result = conn.execute('''
+SELECT
+    region,
+    SUM(sales_amount) as total_regional_sales,
+    AVG(sales_amount) as avg_product_sales
+FROM sales_performance
+GROUP BY region
+ORDER BY total_regional_sales DESC
+''').fetchall()
+
 for row in result:
     print(row)
