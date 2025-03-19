@@ -1,34 +1,36 @@
-# Generated: 2025-03-19 10:34:02.039431
-# Result: [('Tablet', Decimal('500.75'), datetime.date(2023, 1, 17), 500.75, Decimal('500.75')), ('Laptop', Decimal('1200.50'), datetime.date(2023, 1, 15), 1250.25, Decimal('1200.50')), ('Laptop', Decimal('1300.00'), datetime.date(2023, 1, 18), 1250.25, Decimal('1200.50')), ('Phone', Decimal('800.25'), datetime.date(2023, 1, 16), 775.425, Decimal('800.25')), ('Phone', Decimal('750.60'), datetime.date(2023, 1, 19), 775.425, Decimal('800.25'))]
+# Generated: 2025-03-19 10:37:29.391883
+# Result: [('USA', 2020, 113, 1), ('China', 2020, 88, 2), ('Japan', 2020, 58, 3)]
 # Valid: True
 import duckdb
 
-# Complex window function with offset and frame specification
 conn = duckdb.connect(':memory:')
-conn.execute('CREATE TABLE sales (product TEXT, amount DECIMAL(10,2), sale_date DATE)')
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    ('Laptop', 1200.50, '2023-01-15'),
-    ('Phone', 800.25, '2023-01-16'),
-    ('Tablet', 500.75, '2023-01-17'),
-    ('Laptop', 1300.00, '2023-01-18'),
-    ('Phone', 750.60, '2023-01-19')
+
+# Create table of Olympic medal counts
+conn.execute('''
+    CREATE TABLE olympic_medals (
+        country TEXT,
+        year INTEGER,
+        gold INTEGER,
+        silver INTEGER,
+        bronze INTEGER
+    );
+''')
+
+# Insert sample data
+conn.executemany('INSERT INTO olympic_medals VALUES (?, ?, ?, ?, ?)', [
+    ('USA', 2020, 39, 41, 33),
+    ('China', 2020, 38, 32, 18),
+    ('Japan', 2020, 27, 14, 17)
 ])
 
+# Compute total medal counts with window function
 result = conn.execute('''
     SELECT 
-        product, 
-        amount, 
-        sale_date,
-        AVG(amount) OVER (
-            PARTITION BY product 
-            ORDER BY sale_date 
-            ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
-        ) as rolling_avg,
-        FIRST_VALUE(amount) OVER (
-            PARTITION BY product 
-            ORDER BY sale_date
-        ) as first_product_sale
-    FROM sales
+        country, 
+        year, 
+        gold + silver + bronze AS total_medals,
+        RANK() OVER (ORDER BY gold DESC) as gold_rank
+    FROM olympic_medals
 ''').fetchall()
 
 for row in result:
