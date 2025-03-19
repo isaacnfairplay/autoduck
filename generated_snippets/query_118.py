@@ -1,28 +1,32 @@
-# Generated: 2025-03-19 09:17:41.695596
-# Result: [('Electronics', Decimal('800.75'), Decimal('800.75')), ('Electronics', Decimal('1200.50'), Decimal('2001.25')), ('Clothing', Decimal('350.00'), Decimal('350.00')), ('Clothing', Decimal('500.25'), Decimal('850.25'))]
+# Generated: 2025-03-19 09:18:34.773676
+# Result: [('Electronics', 'Laptop', Decimal('1200.50'), 1200.5), ('Electronics', 'Phone', Decimal('800.25'), 800.25), ('Electronics', 'Tablet', Decimal('600.00'), 600.0), ('Clothing', 'Shirt', Decimal('50.75'), 50.75)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales table
-conn.execute('CREATE TABLE sales (category TEXT, amount DECIMAL(10,2))')
+# Create sales table with dimensional data
+conn.execute('CREATE TABLE sales (product TEXT, category TEXT, amount DECIMAL(10,2), sale_date DATE)')
 
-# Insert sample data
-conn.executemany('INSERT INTO sales VALUES (?, ?)', [
-    ('Electronics', 1200.50),
-    ('Clothing', 500.25),
-    ('Electronics', 800.75),
-    ('Clothing', 350.00)
+# Insert sample sales data
+conn.executemany('INSERT INTO sales VALUES (?, ?, ?, ?)', [
+    ('Laptop', 'Electronics', 1200.50, '2023-07-15'),
+    ('Phone', 'Electronics', 800.25, '2023-07-16'),
+    ('Tablet', 'Electronics', 600.00, '2023-07-17'),
+    ('Shirt', 'Clothing', 50.75, '2023-07-18')
 ])
 
-# Calculate running total per category using window function
-result = conn.execute('''SELECT
+# Perform multi-dimensional sales analysis
+result = conn.execute('''
+SELECT
     category,
-    amount,
-    SUM(amount) OVER (PARTITION BY category ORDER BY amount) as running_total
+    product,
+    SUM(amount) as total_sales,
+    AVG(amount) as average_sale
 FROM sales
+GROUP BY category, product
+ORDER BY total_sales DESC
 ''').fetchall()
 
 for row in result:
-    print(f'Category: {row[0]}, Amount: ${row[1]}, Running Total: ${row[2]}')
+    print(f'Category: {row[0]}, Product: {row[1]}, Total Sales: ${row[2]}, Avg Sale: ${row[3]:.2f}')
