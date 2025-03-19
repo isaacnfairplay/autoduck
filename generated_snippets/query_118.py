@@ -1,38 +1,31 @@
-# Generated: 2025-03-19 11:04:02.846931
+# Generated: 2025-03-19 11:04:55.187018
 # Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
 # Valid: True
 import duckdb
 
-# Create and query a geospatial table with point data
 conn = duckdb.connect(':memory:')
 
+# Create and analyze sensor performance data
 conn.sql('''
-CREATE TABLE locations (
-    id INTEGER,
-    name VARCHAR,
-    latitude DOUBLE,
-    longitude DOUBLE
+CREATE TABLE sensor_readings (
+    sensor_id INTEGER,
+    reading_time TIMESTAMP,
+    temperature FLOAT,
+    humidity FLOAT
 );
 
-INSERT INTO locations VALUES
-    (1, 'New York', 40.7128, -74.0060),
-    (2, 'Los Angeles', 34.0522, -118.2437),
-    (3, 'Chicago', 41.8781, -87.6298);
+INSERT INTO sensor_readings VALUES
+    (1, '2023-01-01 10:00:00', 22.5, 45.3),
+    (1, '2023-01-01 11:00:00', 23.1, 46.2),
+    (2, '2023-01-01 10:00:00', 19.8, 55.7),
+    (2, '2023-01-01 11:00:00', 20.3, 54.9);
 
--- Calculate distance between points using Haversine formula
-WITH distances AS (
-    SELECT 
-        l1.name AS origin,
-        l2.name AS destination,
-        ROUND(6371 * 2 * ASIN(
-            SQRT(POW(SIN((l1.latitude - l2.latitude) * PI() / 360), 2) +
-            COS(l1.latitude * PI() / 180) * COS(l2.latitude * PI() / 180) *
-            POW(SIN((l1.longitude - l2.longitude) * PI() / 360), 2))
-        ), 2) AS distance_km
-    FROM locations l1
-    CROSS JOIN locations l2
-    WHERE l1.id != l2.id
-)
-
-SELECT * FROM distances ORDER BY distance_km;
+-- Calculate moving average and standard deviation of temperature
+SELECT
+    sensor_id,
+    reading_time,
+    temperature,
+    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY reading_time ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS moving_avg,
+    STDDEV(temperature) OVER (PARTITION BY sensor_id) AS temperature_variation
+FROM sensor_readings
 ''').show()
