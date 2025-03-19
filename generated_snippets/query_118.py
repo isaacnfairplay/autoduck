@@ -1,20 +1,20 @@
-# Generated: 2025-03-19 17:59:59.945094
-# Result: [(datetime.datetime(2023, 1, 1, 10, 0), datetime.datetime(2023, 1, 1, 12, 0), datetime.timedelta(seconds=7200))]
+# Generated: 2025-03-19 18:00:50.981996
+# Result: [('B', 200, 200), ('A', 100, 100), ('A', 150, 250), ('C', 300, 300)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create temporal data and calculate time differences
-conn.execute('CREATE TABLE events (event_time TIMESTAMP, duration INTERVAL)')
-conn.execute("INSERT INTO events VALUES ('2023-01-01 10:00:00', INTERVAL 2 HOURS)")
+# Generate series and compute running totals with window function
+conn.execute('CREATE TABLE sales (product STRING, amount INTEGER)')
+conn.execute("INSERT INTO sales VALUES ('A', 100), ('B', 200), ('A', 150), ('C', 300)")
 
 result = conn.execute("""
     SELECT 
-        event_time, 
-        event_time + duration AS end_time,
-        duration
-    FROM events
+        product, 
+        amount, 
+        SUM(amount) OVER (PARTITION BY product ORDER BY amount) as running_total
+    FROM sales
 """).fetchall()
 
-print(result)  # Demonstrates timestamp and interval manipulation
+print(result)
