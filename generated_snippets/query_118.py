@@ -1,33 +1,31 @@
-# Generated: 2025-03-19 09:22:52.421880
-# Result: [('Laptop', 'Electronics', Decimal('1200.50'), 1), ('Smartphone', 'Electronics', Decimal('800.25'), 2), ('Headphones', 'Electronics', Decimal('150.75'), 3), ('Running Shoes', 'Sports', Decimal('120.00'), 1)]
+# Generated: 2025-03-19 09:23:50.836516
+# Result: [(102, datetime.date(2023, 1, 10), Decimal('350.25'), 1), (102, datetime.date(2023, 3, 5), Decimal('175.00'), 2), (101, datetime.date(2023, 1, 15), Decimal('250.50'), 1), (101, datetime.date(2023, 2, 20), Decimal('125.75'), 2)]
 # Valid: True
 import duckdb
 
-# Create an in-memory database and table with product sales
 conn = duckdb.connect(':memory:')
 conn.execute('''
-    CREATE TABLE product_sales (
-        product_id INTEGER,
-        product_name VARCHAR,
-        category VARCHAR,
-        sale_amount DECIMAL(10,2)
+    CREATE TABLE orders (
+        order_id INTEGER,
+        customer_id INTEGER,
+        total_amount DECIMAL(10,2),
+        order_date DATE
     );
 
-    INSERT INTO product_sales VALUES
-    (1, 'Laptop', 'Electronics', 1200.50),
-    (2, 'Smartphone', 'Electronics', 800.25),
-    (3, 'Headphones', 'Electronics', 150.75),
-    (4, 'Running Shoes', 'Sports', 120.00);
+    INSERT INTO orders VALUES
+    (1, 101, 250.50, '2023-01-15'),
+    (2, 101, 125.75, '2023-02-20'),
+    (3, 102, 350.25, '2023-01-10'),
+    (4, 102, 175.00, '2023-03-05');
 ''')
 
-# Demonstrate window function: ranking sales within categories
 result = conn.execute('''
     SELECT 
-        product_name, 
-        category, 
-        sale_amount,
-        RANK() OVER (PARTITION BY category ORDER BY sale_amount DESC) as sales_rank
-    FROM product_sales
+        customer_id, 
+        order_date, 
+        total_amount,
+        DENSE_RANK() OVER (PARTITION BY customer_id ORDER BY total_amount DESC) as order_rank
+    FROM orders
 ''').fetchall()
 
 print(result)
