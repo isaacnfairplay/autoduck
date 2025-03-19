@@ -1,36 +1,21 @@
-# Generated: 2025-03-19 10:50:13.016966
-# Result: [(1, 4.5, 2), (2, 3.5, 2)]
+# Generated: 2025-03-19 10:51:05.553356
+# Result: [(datetime.date(2024, 1, 1),), (datetime.date(2024, 1, 8),), (datetime.date(2024, 1, 15),), (datetime.date(2024, 1, 22),), (datetime.date(2024, 1, 29),), (datetime.date(2024, 2, 5),)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table for product reviews
-conn.execute('''
-CREATE TABLE reviews (
-    product_id INTEGER,
-    rating INTEGER,
-    review_date DATE
-);
-''')
+# Generate a weekly fiscal date series using recursive CTE
+result = conn.execute("""
+WITH RECURSIVE date_series AS (
+    SELECT DATE '2024-01-01' AS fiscal_week
+    UNION ALL
+    SELECT fiscal_week + INTERVAL 7 DAYS
+    FROM date_series
+    WHERE fiscal_week < DATE '2024-02-01'
+)
+SELECT fiscal_week
+FROM date_series
+""").fetchall()
 
-conn.executemany('INSERT INTO reviews VALUES (?, ?, ?)', [
-    (1, 4, '2023-01-15'),
-    (1, 5, '2023-02-20'),
-    (2, 3, '2023-03-10'),
-    (2, 4, '2023-04-05')
-])
-
-# Calculate average rating per product with minimum review count
-result = conn.execute('''
-SELECT 
-    product_id, 
-    AVG(rating) as avg_rating,
-    COUNT(*) as review_count
-FROM reviews
-GROUP BY product_id
-HAVING COUNT(*) >= 2
-''').fetchall()
-
-for row in result:
-    print(f'Product {row[0]}: Avg Rating = {row[1]}, Reviews = {row[2]}')
+print([str(date[0]) for date in result])
