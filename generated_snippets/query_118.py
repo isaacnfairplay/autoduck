@@ -1,36 +1,39 @@
-# Generated: 2025-03-19 18:35:48.354538
-# Result: [('Electronics', 3, 716.9166666666666)]
+# Generated: 2025-03-19 18:36:40.912395
+# Result: [(1, datetime.datetime(2023, 6, 1, 10, 0), 22.5, 22.5), (1, datetime.datetime(2023, 6, 1, 11, 0), 23.100000381469727, 22.800000190734863), (2, datetime.datetime(2023, 6, 1, 10, 0), 21.799999237060547, 21.799999237060547), (2, datetime.datetime(2023, 6, 1, 11, 0), 22.299999237060547, 22.049999237060547)]
 # Valid: True
 import duckdb
 
-# Create an in-memory database connection
+# Create in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Create a sample products table
+# Create a time series table with sensor data
 conn.execute('''
-    CREATE TABLE products (
-        product_id INTEGER PRIMARY KEY,
-        product_name VARCHAR,
-        category VARCHAR,
-        price DECIMAL(10,2)
+    CREATE TABLE sensor_readings (
+        timestamp TIMESTAMP,
+        sensor_id INTEGER,
+        temperature FLOAT
     );
 
-    INSERT INTO products VALUES
-        (1, 'Laptop', 'Electronics', 1200.00),
-        (2, 'Smartphone', 'Electronics', 800.50),
-        (3, 'Headphones', 'Electronics', 150.25)
+    INSERT INTO sensor_readings VALUES
+        ('2023-06-01 10:00:00', 1, 22.5),
+        ('2023-06-01 11:00:00', 1, 23.1),
+        ('2023-06-01 10:00:00', 2, 21.8),
+        ('2023-06-01 11:00:00', 2, 22.3)
 ''');
 
-# Demonstrate aggregate and filtering capabilities
+# Compute rolling average temperature per sensor
 result = conn.execute('''
-    SELECT 
-        category, 
-        COUNT(*) as product_count,
-        AVG(price) as avg_price
-    FROM products
-    WHERE category = 'Electronics'
-    GROUP BY category
+    SELECT
+        sensor_id,
+        timestamp,
+        temperature,
+        AVG(temperature) OVER (
+            PARTITION BY sensor_id
+            ORDER BY timestamp
+            ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+        ) as rolling_avg
+    FROM sensor_readings
 ''').fetchall()
 
 for row in result:
-    print(f"Category: {row[0]}, Products: {row[1]}, Average Price: ${row[2]:.2f}")
+    print(f"Sensor {row[0]}: {row[1]} - Temp: {row[2]}, Rolling Avg: {row[3]:.2f}")
