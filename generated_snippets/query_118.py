@@ -1,32 +1,35 @@
-# Generated: 2025-03-19 19:50:37.945522
-# Result: [('Electronics', 'Phone', Decimal('1500.00'), 1), ('Electronics', 'Laptop', Decimal('1200.00'), 2), ('Clothing', 'Pants', Decimal('950.00'), 1), ('Clothing', 'Shirt', Decimal('800.00'), 2)]
+# Generated: 2025-03-19 19:51:30.890043
+# Result: [('Engineering', 95.1, 1, True), ('Marketing', 88.75, 2, True), ('Sales', 83.05, 3, True), ('Marketing', 88.75, 4, True), ('Sales', 83.05, 5, False)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create product sales table
+# Create table for tracking employee performance
 conn.execute('''
-CREATE TABLE product_sales (
-    category VARCHAR,
-    product_name VARCHAR,
-    sales_amount DECIMAL(10,2)
+CREATE TABLE employee_performance (
+    employee_id INT,
+    department VARCHAR,
+    performance_score DECIMAL(5,2),
+    bonus_eligible BOOLEAN
 );
 
-INSERT INTO product_sales VALUES
-('Electronics', 'Laptop', 1200),
-('Electronics', 'Phone', 1500),
-('Electronics', 'Tablet', 900),
-('Clothing', 'Shirt', 800),
-('Clothing', 'Pants', 950);
+INSERT INTO employee_performance VALUES
+(1, 'Sales', 87.5, TRUE),
+(2, 'Marketing', 92.3, TRUE),
+(3, 'Engineering', 95.1, TRUE),
+(4, 'Sales', 78.6, FALSE),
+(5, 'Marketing', 85.2, TRUE);
 ''')
 
-# Use QUALIFY to get top 2 products per category by sales
+# Calculate performance metrics using window functions
 result = conn.execute('''
-SELECT category, product_name, sales_amount,
-       RANK() OVER (PARTITION BY category ORDER BY sales_amount DESC) as sales_rank
-FROM product_sales
-QUALIFY sales_rank <= 2
+SELECT 
+    department,
+    AVG(performance_score) OVER (PARTITION BY department) as dept_avg_score,
+    RANK() OVER (ORDER BY performance_score DESC) as performance_rank,
+    bonus_eligible
+FROM employee_performance
 ''').fetchall()
 
 print(result)
