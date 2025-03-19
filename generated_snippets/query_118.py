@@ -1,36 +1,32 @@
-# Generated: 2025-03-19 11:40:46.756405
-# Result: [('Electronics', Decimal('140050.00'), 1000.25), ('Sports', Decimal('9000.00'), 120.0)]
+# Generated: 2025-03-19 11:42:30.538787
+# Result: [(datetime.datetime(2023, 7, 1, 10, 0), 1, 22.5, 0.3000001907348633), (datetime.datetime(2023, 7, 1, 11, 0), 1, 23.100000381469727, 7.366666158040363), (datetime.datetime(2023, 7, 1, 12, 0), 1, 45.79999923706055, 11.34999942779541)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create product inventory table
-conn.execute('''
-CREATE TABLE products (
-    product_id INTEGER,
-    name VARCHAR,
-    category VARCHAR,
-    stock_quantity INTEGER,
-    unit_price DECIMAL(10,2)
+# Create temperature tracking table with anomaly detection
+conn.execute('''CREATE TABLE temperature_log (
+    timestamp TIMESTAMP,
+    sensor_id INTEGER,
+    temperature FLOAT
 );
 
-INSERT INTO products VALUES
-(1, 'Laptop', 'Electronics', 50, 1200.00),
-(2, 'Smartphone', 'Electronics', 100, 800.50),
-(3, 'Running Shoes', 'Sports', 75, 120.00);
+INSERT INTO temperature_log VALUES
+('2023-07-01 10:00:00', 1, 22.5),
+('2023-07-01 11:00:00', 1, 23.1),
+('2023-07-01 12:00:00', 1, 45.8);
 ''')
 
-# Analyze inventory valuation by category
+# Detect temperature anomalies using window function
 result = conn.execute('''
-SELECT
-    category,
-    SUM(stock_quantity * unit_price) as total_inventory_value,
-    AVG(unit_price) as avg_product_price
-FROM products
-GROUP BY category
-ORDER BY total_inventory_value DESC
+SELECT 
+    timestamp,
+    sensor_id,
+    temperature,
+    ABS(temperature - AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)) as temp_deviation
+FROM temperature_log
 ''').fetchall()
 
 for row in result:
-    print(f"{row[0]}: Inventory Value ${row[1]:.2f}, Avg Price ${row[2]:.2f}")
+    print(f"Sensor {row[1]} at {row[0]}: {row[2]}°C (Deviation: {row[3]:.2f}°C)")
