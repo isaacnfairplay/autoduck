@@ -1,4 +1,4 @@
-# Generated: 2025-03-19 18:34:06.179292
+# Generated: 2025-03-19 18:43:40.341913
 # Result: None
 # Valid: True
 import duckdb
