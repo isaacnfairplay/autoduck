@@ -1,13 +1,31 @@
-# Generated: 2025-03-19 15:49:15.060760
-# Result: [([1, 4, 9, 16, 25],)]
+# Generated: 2025-03-19 15:51:48.543616
+# Result: [('Electronics', 2022, 50000, 50000), ('Electronics', 2023, 65000, 115000), ('Clothing', 2022, 75000, 75000), ('Clothing', 2023, 80000, 155000)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Transform list of numbers using array_transform
+# Create temporary table of sales data
+conn.execute('''
+    CREATE TEMPORARY TABLE sales AS
+    SELECT * FROM (
+        VALUES
+        ('Electronics', 2022, 50000),
+        ('Clothing', 2022, 75000),
+        ('Electronics', 2023, 65000),
+        ('Clothing', 2023, 80000)
+    ) AS t(category, year, revenue)
+''')
+
+# Demonstrate window function: calculate cumulative revenue per category
 result = conn.execute('''
-    SELECT array_transform([1, 2, 3, 4, 5], x -> x * x) as squared_numbers
+    SELECT 
+        category, 
+        year, 
+        revenue,
+        SUM(revenue) OVER (PARTITION BY category ORDER BY year) as cumulative_revenue
+    FROM sales
 ''').fetchall()
 
-print(result[0][0])  # [1, 4, 9, 16, 25]
+for row in result:
+    print(f"Category: {row[0]}, Year: {row[1]}, Revenue: {row[2]}, Cumulative Revenue: {row[3]}")
