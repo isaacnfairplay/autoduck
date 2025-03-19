@@ -1,8 +1,6 @@
-# Generated: 2025-03-19 09:08:52.390492
-# Result: [('Smartphone', 'Mobile Devices', Decimal('799.99'))]
+# Generated: 2025-03-19 09:09:43.098142
+# Result: [('Smartphone', 'Electronics', Decimal('799.99')), ('Laptop', 'Electronics', Decimal('1299.50'))]
 # Valid: True
-# Variable product: Type: tuple
-# Attributes/Methods: count, index
 import duckdb
 
 conn = duckdb.connect(':memory:')
@@ -12,15 +10,15 @@ conn.execute('CREATE TABLE electronics (product_id INT, name TEXT, category TEXT
 
 # Insert sample data
 conn.executemany('INSERT INTO electronics VALUES (?, ?, ?, ?)', [
-    (1, 'Smartphone', 'Mobile Devices', 799.99),
-    (2, 'Laptop', 'Computers', 1299.50),
-    (3, 'Tablet', 'Mobile Devices', 499.99)
+    (1, 'Smartphone', 'Electronics', 799.99),
+    (2, 'Laptop', 'Electronics', 1299.50),
+    (3, 'Tablet', 'Electronics', 499.99)
 ])
 
-# Query mobile devices above specified price threshold
+# Query specific electronics category with price filter
 result = conn.execute(
-    'SELECT name, category, price FROM electronics WHERE category = ? AND price > ?', 
-    ('Mobile Devices', 600)
+    'SELECT name, category, price FROM electronics WHERE category = ? AND price >= ?', 
+    ('Electronics', 500)
 ).fetchall()
 
 for product in result:
