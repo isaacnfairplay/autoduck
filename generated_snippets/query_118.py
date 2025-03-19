@@ -1,21 +1,34 @@
-# Generated: 2025-03-19 10:51:05.553356
-# Result: [(datetime.date(2024, 1, 1),), (datetime.date(2024, 1, 8),), (datetime.date(2024, 1, 15),), (datetime.date(2024, 1, 22),), (datetime.date(2024, 1, 29),), (datetime.date(2024, 2, 5),)]
+# Generated: 2025-03-19 10:53:59.797490
+# Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
 # Valid: True
 import duckdb
 
+# Create an in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Generate a weekly fiscal date series using recursive CTE
-result = conn.execute("""
-WITH RECURSIVE date_series AS (
-    SELECT DATE '2024-01-01' AS fiscal_week
-    UNION ALL
-    SELECT fiscal_week + INTERVAL 7 DAYS
-    FROM date_series
-    WHERE fiscal_week < DATE '2024-02-01'
-)
-SELECT fiscal_week
-FROM date_series
-""").fetchall()
+# Create sample sales data
+conn.execute('''
+    CREATE TABLE sales (
+        product TEXT,
+        region TEXT,
+        sales_amount DECIMAL(10,2)
+    );
 
-print([str(date[0]) for date in result])
+    INSERT INTO sales VALUES
+        ('Laptop', 'North', 5000.50),
+        ('Phone', 'South', 3200.75),
+        ('Tablet', 'East', 2100.25),
+        ('Laptop', 'West', 4500.60)
+''');
+
+# Demonstrate window function: running total of sales by region
+result = conn.execute('''
+    SELECT 
+        product, 
+        region, 
+        sales_amount,
+        SUM(sales_amount) OVER (PARTITION BY region ORDER BY sales_amount) as running_total
+    FROM sales
+''').fetchall()
+
+print(result)
