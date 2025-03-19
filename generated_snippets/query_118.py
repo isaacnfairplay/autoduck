@@ -1,18 +1,30 @@
-# Generated: 2025-03-19 12:30:09.496385
-# Result: [('Electronics', 'Laptop', Decimal('1200.00')), ('Furniture', 'Chair', Decimal('250.50'))]
+# Generated: 2025-03-19 12:31:02.827136
+# Result: []
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create dynamic sales data from VALUES clause
+# Create table for tracking product inventory
+conn.execute('''
+CREATE TABLE inventory (
+    product_id INT,
+    product_name VARCHAR,
+    quantity INT,
+    reorder_level INT
+);
+
+INSERT INTO inventory VALUES
+    (1, 'Laptop', 50, 20),
+    (2, 'Monitor', 75, 30),
+    (3, 'Keyboard', 100, 25);
+''')
+
+# Find products below reorder threshold
 result = conn.execute('''
-SELECT * FROM (VALUES
-    ('Electronics', 'Laptop', 1200.00),
-    ('Clothing', 'Shirt', 50.00),
-    ('Furniture', 'Chair', 250.50)
-) AS t(category, product, amount)
-WHERE amount > 100
+SELECT product_name, quantity, reorder_level
+FROM inventory
+WHERE quantity < reorder_level
 ''').fetchall()
 
 for row in result:
