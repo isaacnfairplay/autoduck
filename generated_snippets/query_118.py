@@ -1,32 +1,30 @@
-# Generated: 2025-03-19 11:42:30.538787
-# Result: [(datetime.datetime(2023, 7, 1, 10, 0), 1, 22.5, 0.3000001907348633), (datetime.datetime(2023, 7, 1, 11, 0), 1, 23.100000381469727, 7.366666158040363), (datetime.datetime(2023, 7, 1, 12, 0), 1, 45.79999923706055, 11.34999942779541)]
+# Generated: 2025-03-19 11:43:23.371361
+# Result: [('Electronics', 1500, 39.473684210526315), ('Electronics', 2300, 60.526315789473685), ('Clothing', 1000, 36.36363636363637), ('Clothing', 1750, 63.63636363636363)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create temperature tracking table with anomaly detection
-conn.execute('''CREATE TABLE temperature_log (
-    timestamp TIMESTAMP,
-    sensor_id INTEGER,
-    temperature FLOAT
-);
-
-INSERT INTO temperature_log VALUES
-('2023-07-01 10:00:00', 1, 22.5),
-('2023-07-01 11:00:00', 1, 23.1),
-('2023-07-01 12:00:00', 1, 45.8);
+# Create sales data
+conn.execute('''
+CREATE TABLE sales AS
+SELECT 'Electronics' as category, 1500 as amount
+UNION ALL
+SELECT 'Electronics', 2300
+UNION ALL
+SELECT 'Clothing', 1000
+UNION ALL
+SELECT 'Clothing', 1750
 ''')
 
-# Detect temperature anomalies using window function
+# Calculate percentage of total sales within each category
 result = conn.execute('''
 SELECT 
-    timestamp,
-    sensor_id,
-    temperature,
-    ABS(temperature - AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)) as temp_deviation
-FROM temperature_log
+    category, 
+    amount,
+    amount * 100.0 / SUM(amount) OVER (PARTITION BY category) as category_percentage
+FROM sales
 ''').fetchall()
 
 for row in result:
-    print(f"Sensor {row[1]} at {row[0]}: {row[2]}°C (Deviation: {row[3]:.2f}°C)")
+    print(f"Category: {row[0]}, Amount: {row[1]}, Percentage: {row[2]:.2f}%")
