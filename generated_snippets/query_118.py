@@ -1,18 +1,27 @@
-# Generated: 2025-03-19 08:11:54.232184
-# Result: [('Apple', 10), ('Banana', 15), ('Cherry', 20)]
+# Generated: 2025-03-19 08:12:45.301366
+# Result: [('Electronics', 'Laptop', Decimal('1200.00'))]
 # Valid: True
 import duckdb
 
 # Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Generate table directly from VALUES clause
+# Create and populate product sales table
+conn.execute('''
+CREATE TABLE product_sales (
+    category VARCHAR,
+    product VARCHAR,
+    sales_amount DECIMAL(10,2)
+);
+
+INSERT INTO product_sales VALUES
+    ('Electronics', 'Laptop', 1200.00);
+''')
+
+# Query specific electronics product
 result = conn.execute('''
-SELECT * FROM (VALUES
-    ('Apple', 10),
-    ('Banana', 15),
-    ('Cherry', 20)
-) AS fruits(name, quantity)
+SELECT * FROM product_sales
+WHERE category = 'Electronics' AND product = 'Laptop'
 ''').fetchall()
 
 for row in result:
