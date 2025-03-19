@@ -1,36 +1,26 @@
-# Generated: 2025-03-19 19:48:03.764448
-# Result: [('Pants', 'South', 70), ('Shirt', 'North', 50), ('Pants', 'North', 30), ('Shirt', 'South', 25)]
+# Generated: 2025-03-19 19:48:55.147495
+# Result: [('Electronics', 2700, 2), ('Clothing', 1750, 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create clothing sales table with complex data
-conn.execute('''
-CREATE TABLE clothing_sales (
-    category VARCHAR,
-    product_name VARCHAR,
-    sales_quantity INT,
-    sales_region VARCHAR
-);
-
-INSERT INTO clothing_sales VALUES
-('Clothing', 'Shirt', 50, 'North'),
-('Clothing', 'Pants', 30, 'North'),
-('Clothing', 'Shirt', 25, 'South'),
-('Clothing', 'Pants', 70, 'South');
-''')
-
-# Compute total sales quantity by clothing type and region
+# Create inline table with categorical aggregation
 result = conn.execute('''
+WITH sales_data(category, product, amount) AS (
+    VALUES
+    ('Electronics', 'Laptop', 1200),
+    ('Electronics', 'Phone', 1500),
+    ('Clothing', 'Shirt', 800),
+    ('Clothing', 'Pants', 950)
+)
 SELECT 
-    product_name, 
-    sales_region,
-    SUM(sales_quantity) as total_sales
-FROM clothing_sales
-WHERE category = 'Clothing'
-GROUP BY product_name, sales_region
-ORDER BY total_sales DESC
+    category, 
+    SUM(amount) as total_category_sales,
+    COUNT(DISTINCT product) as unique_products
+FROM sales_data
+GROUP BY category
+ORDER BY total_category_sales DESC
 ''').fetchall()
 
 print(result)
