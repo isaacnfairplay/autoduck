@@ -1,34 +1,23 @@
-# Generated: 2025-03-19 11:29:21.626240
-# Result: [(2, 'Math', Decimal('78.20'), 0.0), (1, 'Math', Decimal('85.50'), 1.0), (2, 'Science', Decimal('88.70'), 0.0), (1, 'Science', Decimal('92.30'), 1.0)]
+# Generated: 2025-03-19 11:30:14.212138
+# Result: [('Laptop', 'Electronics', Decimal('1500.00'), '2023-01-15'), ('Smartphone', 'Electronics', Decimal('850.50'), '2023-02-20'), ('Running Shoes', 'Sports', Decimal('120.00'), '2023-03-10'), ('Headphones', 'Electronics', Decimal('199.99'), '2023-01-25')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a table tracking student grades
+# Create sales table with various attributes
 conn.execute('''
-CREATE TABLE student_grades (
-    student_id INTEGER,
-    subject VARCHAR,
-    grade DECIMAL(5,2)
-);
-
-INSERT INTO student_grades VALUES
-(1, 'Math', 85.5),
-(1, 'Science', 92.3),
-(2, 'Math', 78.2),
-(2, 'Science', 88.7);
+CREATE TABLE sales AS
+SELECT 'Laptop' as product, 'Electronics' as category, 1500.00 as price, '2023-01-15' as sale_date
+UNION ALL
+SELECT 'Smartphone', 'Electronics', 850.50, '2023-02-20'
+UNION ALL
+SELECT 'Running Shoes', 'Sports', 120.00, '2023-03-10'
+UNION ALL
+SELECT 'Headphones', 'Electronics', 199.99, '2023-01-25'
 ''')
 
-# Use window functions to calculate grade percentiles
-result = conn.execute('''
-SELECT 
-    student_id, 
-    subject, 
-    grade,
-    PERCENT_RANK() OVER (PARTITION BY subject ORDER BY grade) as percentile
-FROM student_grades
-''').fetchall()
-
+# Verify table creation
+result = conn.execute('SELECT * FROM sales').fetchall()
 for row in result:
-    print(f"Student {row[0]} in {row[1]}: Grade {row[2]} (Percentile: {row[3]:.2%})")
+    print(row)
