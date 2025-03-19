@@ -1,41 +1,30 @@
-# Generated: 2025-03-19 08:56:39.220310
-# Result: [('Electronics', Decimal('2751.75'), 775.625, 2)]
+# Generated: 2025-03-19 08:57:31.667788
+# Result: [('Laptop', datetime.date(2023, 7, 1), 5, 5, Decimal('6002.50')), ('Phone', datetime.date(2023, 7, 2), 3, 8, Decimal('8403.25')), ('Tablet', datetime.date(2023, 7, 3), 2, 10, Decimal('9404.75'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales table with comprehensive columns
-conn.execute('''
-CREATE TABLE sales (
-    sale_id INTEGER PRIMARY KEY,
-    product_name VARCHAR,
-    category VARCHAR,
-    quantity INTEGER,
-    unit_price DECIMAL(10,2),
-    total_price DECIMAL(10,2),
-    sale_date DATE,
-    customer_id INTEGER,
-    region VARCHAR
-);
-''')
+# Create table for tracking product orders
+conn.execute('CREATE TABLE product_orders (product TEXT, order_date DATE, quantity INT, price DECIMAL(10,2))')
 
-# Insert sample sales data
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-    (1, 'Laptop', 'Electronics', 2, 1200.50, 2401.00, '2023-06-15', 101, 'North'),
-    (2, 'Tablet', 'Electronics', 1, 350.75, 350.75, '2023-06-16', 102, 'South')
+# Insert sample order data
+conn.executemany('INSERT INTO product_orders VALUES (?, ?, ?, ?)', [
+    ('Laptop', '2023-07-01', 5, 1200.50),
+    ('Phone', '2023-07-02', 3, 800.25),
+    ('Tablet', '2023-07-03', 2, 500.75)
 ])
 
-# Query to demonstrate flexible table exploration
-result = conn.execute('''
-SELECT 
-    category, 
-    SUM(total_price) as total_revenue, 
-    AVG(unit_price) as avg_unit_price,
-    COUNT(*) as num_sales
-FROM sales
-GROUP BY category
+# Calculate cumulative quantity and total value using window functions
+result = conn.execute('''  
+    SELECT 
+        product, 
+        order_date, 
+        quantity,
+        SUM(quantity) OVER (ORDER BY order_date) as cumulative_quantity,
+        SUM(quantity * price) OVER (ORDER BY order_date) as cumulative_value
+    FROM product_orders
 ''').fetchall()
 
 for row in result:
-    print(f"Category: {row[0]}, Total Revenue: ${row[1]:.2f}, Avg Unit Price: ${row[2]:.2f}, Sales Count: {row[3]}")
+    print(f"Product: {row[0]}, Date: {row[1]}, Quantity: {row[2]}, Cumulative Qty: {row[3]}, Cumulative Value: ${row[4]:.2f}")
