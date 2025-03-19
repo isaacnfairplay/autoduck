@@ -1,4 +1,4 @@
-# Generated: 2025-03-18 22:08:15.776990
+# Generated: 2025-03-18 23:30:06.090864
 # Result: [('Electronics', 'Laptop', Decimal('999.99'), 799.99, 1), ('Electronics', 'Smartphone', Decimal('599.99'), 799.99, 2), ('Sports', 'Running Shoes', Decimal('129.99'), 129.99, 3)]
 # Valid: True
 import duckdb
@@ -6,21 +6,22 @@ import duckdb
 conn = duckdb.connect(':memory:')
 
 conn.sql('''
-CREATE TABLE products (
-    category VARCHAR,
+CREATE TABLE clothing_items (
+    id INTEGER,
     name VARCHAR,
-    price DECIMAL(10,2)
+    price DECIMAL(10,2),
+    size VARCHAR
 );
 
-INSERT INTO products VALUES
-    ('Electronics', 'Laptop', 1200.00),
-    ('Electronics', 'Smartphone', 800.00),
-    ('Clothing', 'Shirt', 50.00);
+INSERT INTO clothing_items VALUES
+    (1, 'Shirt', 50.00, 'M'),
+    (2, 'Shirt', 55.00, 'L'),
+    (3, 'Shirt', 45.00, 'S');
 
 SELECT 
-    category, 
     name, 
+    size, 
     price,
-    MAX(price) OVER (PARTITION BY category) as max_category_price
-FROM products
+    RANK() OVER (ORDER BY price) as price_rank
+FROM clothing_items
 ''').show()
