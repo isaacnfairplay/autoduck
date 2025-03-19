@@ -1,28 +1,26 @@
-# Generated: 2025-03-19 08:36:48.278755
-# Result: [('Widget', 1, Decimal('1000.50'), Decimal('1000.50')), ('Widget', 2, Decimal('1200.25'), Decimal('2200.75')), ('Gadget', 1, Decimal('1500.75'), Decimal('1500.75')), ('Gadget', 2, Decimal('1750.60'), Decimal('3251.35'))]
+# Generated: 2025-03-19 08:37:39.881796
+# Result: [('Phone', 'West', 75, 1), ('Desktop', 'West', 40, 2), ('Laptop', 'East', 50, 1), ('Tablet', 'East', 30, 2)]
 # Valid: True
-# Variable data: Type: list
-# Attributes/Methods: append, clear, copy, count, extend, index, insert, pop, remove, reverse, sort
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample sales data
-conn.execute('CREATE TABLE sales (product TEXT, month INT, revenue DECIMAL(10,2))')
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    ('Widget', 1, 1000.50), ('Gadget', 1, 1500.75),
-    ('Widget', 2, 1200.25), ('Gadget', 2, 1750.60)
+# Create and populate product inventory table
+conn.execute('CREATE TABLE inventory (product TEXT, quantity INT, warehouse TEXT)')
+conn.executemany('INSERT INTO inventory VALUES (?, ?, ?)', [
+    ('Laptop', 50, 'East'), ('Phone', 75, 'West'), 
+    ('Tablet', 30, 'East'), ('Desktop', 40, 'West')
 ])
 
-# Calculate cumulative revenue per product using window function
+# Use window function to rank products by quantity per warehouse
 result = conn.execute('''
     SELECT 
         product, 
-        month, 
-        revenue,
-        SUM(revenue) OVER (PARTITION BY product ORDER BY month) as cumulative_revenue
-    FROM sales
+        warehouse, 
+        quantity,
+        RANK() OVER (PARTITION BY warehouse ORDER BY quantity DESC) as rank
+    FROM inventory
 ''').fetchall()
 
 for row in result:
-    print(f"Product: {row[0]}, Month: {row[1]}, Revenue: {row[2]}, Cumulative: {row[3]})")
+    print(f"Product: {row[0]}, Warehouse: {row[1]}, Quantity: {row[2]}, Rank: {row[3]}")
