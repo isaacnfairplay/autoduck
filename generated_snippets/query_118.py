@@ -1,4 +1,4 @@
-# Generated: 2025-03-19 12:38:56.185648
+# Generated: 2025-03-19 12:39:47.280520
 # Result: [('Laptop', 'Electronics', Decimal('1200.00'), 1000.0), ('Smartphone', 'Electronics', Decimal('800.00'), 1000.0), ('Shirt', 'Clothing', Decimal('50.00'), 62.5), ('Pants', 'Clothing', Decimal('75.00'), 62.5)]
 # Valid: True
 import duckdb
