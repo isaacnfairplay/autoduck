@@ -1,36 +1,39 @@
-# Generated: 2025-03-19 12:22:16.867833
-# Result: [('Clothing', 1, Decimal('285.00'), 26.25), ('Electronics', 1, Decimal('407.50'), 51.25)]
+# Generated: 2025-03-19 12:23:10.478352
+# Result: [('A', 'D', 'A->D', 2), ('A', 'D', 'A->D', 6), ('A', 'D', 'A->C->D', 5)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate product sales table
-conn.execute('''
-CREATE TABLE product_sales (
-    product_id INT,
-    category VARCHAR,
-    sale_date DATE,
-    quantity INT,
-    price DECIMAL(10,2)
-);
+# Create graph network for path finding
+conn.execute('''CREATE TABLE connections (
+    start_node VARCHAR,
+    end_node VARCHAR,
+    distance INT
+);''')
 
-INSERT INTO product_sales VALUES
-    (1, 'Electronics', '2023-01-15', 5, 50.00),
-    (1, 'Electronics', '2023-02-20', 3, 52.50),
-    (2, 'Clothing', '2023-01-10', 7, 25.00),
-    (2, 'Clothing', '2023-03-05', 4, 27.50);
+conn.execute('''
+INSERT INTO connections VALUES
+    ('A', 'B', 5),
+    ('B', 'C', 3),
+    ('A', 'C', 8),
+    ('C', 'D', 2),
+    ('B', 'D', 6)
 ''')
 
-# Demonstrate analytical query with multiple aggregations
+# Recursive query to find all possible paths
 result = conn.execute('''
-SELECT 
-    category,
-    COUNT(DISTINCT product_id) as unique_products,
-    SUM(quantity * price) as total_revenue,
-    AVG(price) as avg_price
-FROM product_sales
-GROUP BY category
+WITH RECURSIVE path_finder(start_node, end_node, path, total_distance) AS (
+    SELECT start_node, end_node, start_node, 0
+    FROM connections
+    UNION ALL
+    SELECT p.start_node, c.end_node, p.path || '->' || c.end_node, p.total_distance + c.distance
+    FROM path_finder p
+    JOIN connections c ON p.end_node = c.start_node
+    WHERE c.end_node NOT LIKE '%' || p.path || '%'
+)
+SELECT * FROM path_finder
+WHERE start_node = 'A' AND end_node = 'D'
 ''').fetchall()
 
 for row in result:
