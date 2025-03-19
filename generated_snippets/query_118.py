@@ -1,33 +1,28 @@
-# Generated: 2025-03-19 08:19:40.976092
-# Result: [(1, datetime.datetime(2023, 7, 15, 10, 0), Decimal('22.50'), 22.5), (1, datetime.datetime(2023, 7, 15, 11, 0), Decimal('23.10'), 22.8), (2, datetime.datetime(2023, 7, 15, 10, 0), Decimal('21.80'), 21.8)]
+# Generated: 2025-03-19 08:20:52.827382
+# Result: [('Laptop', Decimal('1200.50')), ('Smartphone', Decimal('800.25'))]
 # Valid: True
 import duckdb
 
-# Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create sensor temperature dataset with temporal data
 conn.execute('''
-CREATE TABLE sensor_readings (
-    sensor_id INTEGER,
-    timestamp TIMESTAMP,
-    temperature DECIMAL(5,2)
+CREATE TABLE products (
+    product_id INT,
+    name VARCHAR,
+    price DECIMAL(10,2)
 );
 
-INSERT INTO sensor_readings VALUES
-    (1, '2023-07-15 10:00:00', 22.5),
-    (1, '2023-07-15 11:00:00', 23.1),
-    (2, '2023-07-15 10:00:00', 21.8);
+INSERT INTO products VALUES
+    (1, 'Laptop', 1200.50),
+    (2, 'Smartphone', 800.25),
+    (3, 'Tablet', 500.00);
 ''')
 
-# Analyze temperature trends with window functions
 result = conn.execute('''
-SELECT
-    sensor_id,
-    timestamp,
-    temperature,
-    AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as rolling_avg
-FROM sensor_readings
+SELECT name, price
+FROM products
+WHERE price > 600
+ORDER BY price DESC
 ''').fetchall()
 
 for row in result:
