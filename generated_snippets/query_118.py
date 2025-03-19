@@ -1,22 +1,26 @@
-# Generated: 2025-03-19 16:31:08.633362
-# Result: [(0,), (1,), (1,), (2,), (3,), (5,), (8,), (13,), (21,), (34,)]
+# Generated: 2025-03-19 16:33:00.539201
+# Result: [(3,), (5,), (7,), (9,), (11,), (13,), (15,), (17,), (19,)]
 # Valid: True
+# Variable prime: Type: tuple
+# Attributes/Methods: count, index
 import duckdb
 
-# Create an in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Create a recursive common table expression to generate a Fibonacci sequence
+# Generate unique sequence of prime numbers using recursive CTE
 result = conn.execute('''
-WITH RECURSIVE fibonacci(n, current, next) AS (
-    SELECT 1, 0, 1
+WITH RECURSIVE primes(n, candidate) AS (
+    SELECT 2, 3
     UNION ALL
-    SELECT n + 1, next, current + next
-    FROM fibonacci
-    WHERE n < 10
+    SELECT n + 1, candidate + 2
+    FROM primes
+    WHERE NOT EXISTS (
+        SELECT 1 FROM primes p2 
+        WHERE p2.n < primes.n AND candidate % p2.candidate = 0
+    ) AND n < 10
 )
-SELECT current AS fibonacci_number FROM fibonacci
+SELECT candidate FROM primes
 ''').fetchall()
 
-for row in result:
-    print(row)
+for prime in result:
+    print(prime[0])
