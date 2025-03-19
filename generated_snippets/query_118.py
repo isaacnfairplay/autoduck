@@ -1,13 +1,26 @@
-# Generated: 2025-03-19 13:32:56.996380
-# Result: [1, 4, 9, 16, 25]
+# Generated: 2025-03-19 13:34:47.451606
+# Result: [('Charlie', 35, 1), ('Alice', 30, 2), ('Bob', 25, 3)]
 # Valid: True
 import duckdb
 
+# Create an in-memory database and table
 conn = duckdb.connect(':memory:')
+conn.execute('CREATE TABLE users (id INT, name VARCHAR, age INT)')
 
-# Use array_transform to square each element of a numeric list
+# Insert sample data
+conn.executemany('INSERT INTO users VALUES (?, ?, ?)', [
+    (1, 'Alice', 30),
+    (2, 'Bob', 25),
+    (3, 'Charlie', 35)
+])
+
+# Perform a window function to rank users by age
 result = conn.execute('''
-    SELECT array_transform([1, 2, 3, 4, 5], x -> x * x) AS squared_array
-''').fetchone()[0]
+    SELECT 
+        name, 
+        age, 
+        RANK() OVER (ORDER BY age DESC) as age_rank
+    FROM users
+''').fetchall()
 
-print(result)  # Outputs: [1, 4, 9, 16, 25]
+print(result)
