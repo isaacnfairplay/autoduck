@@ -1,39 +1,34 @@
-# Generated: 2025-03-19 09:25:54.984506
-# Result: [(1, 'Electronics', Decimal('1200.50'), 1.0)]
+# Generated: 2025-03-19 09:29:27.337005
+# Result: [('Sales', Decimal('45000.00'), Decimal('45000.00')), ('Sales', Decimal('50000.00'), Decimal('95000.00')), ('Engineering', Decimal('75000.00'), Decimal('75000.00')), ('Engineering', Decimal('80000.00'), Decimal('155000.00')), ('Marketing', Decimal('60000.00'), Decimal('60000.00'))]
 # Valid: True
 import duckdb
 
+# Create an in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Create a table with sales data
+# Create a table with employee salary data
 conn.execute('''
-CREATE TABLE sales (
-    product_id INTEGER,
-    category VARCHAR,
-    sale_amount DECIMAL(10,2),
-    sale_date DATE
+CREATE TABLE employees (
+    dept VARCHAR,
+    salary DECIMAL(10,2)
 );
 
-INSERT INTO sales VALUES
-(1, 'Electronics', 1200.50, '2023-01-15'),
-(2, 'Electronics', 800.25, '2023-02-20'),
-(3, 'Sports', 350.00, '2023-03-10'),
-(4, 'Sports', 250.75, '2023-04-05');
-''')
-
-# Advanced filtering using window functions and subqueries
-result = conn.execute('''
-WITH ranked_sales AS (
-    SELECT 
-        product_id, 
-        category, 
-        sale_amount,
-        PERCENT_RANK() OVER (PARTITION BY category ORDER BY sale_amount) as percentile_rank
-    FROM sales
+INSERT INTO employees VALUES
+('Sales', 50000.00),
+('Marketing', 60000.00),
+('Engineering', 75000.00),
+('Sales', 45000.00),
+('Engineering', 80000.00);
+'''
 )
-SELECT * FROM ranked_sales
-WHERE percentile_rank > 0.5
-    AND category = 'Electronics'
+
+# Calculate running total salary per department using window function
+result = conn.execute('''
+SELECT 
+    dept, 
+    salary,
+    SUM(salary) OVER (PARTITION BY dept ORDER BY salary) as cumulative_dept_salary
+FROM employees
 ''').fetchall()
 
 print(result)
