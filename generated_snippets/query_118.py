@@ -1,26 +1,27 @@
-# Generated: 2025-03-19 08:59:13.038240
-# Result: [('GOOGL', 100.5), ('MSFT', 280.75), ('AAPL', 150.25)]
+# Generated: 2025-03-19 09:00:04.965341
+# Result: [('Electronics', Decimal('500.25'), Decimal('500.25')), ('Electronics', Decimal('1000.50'), Decimal('1500.75')), ('Clothing', Decimal('600.30'), Decimal('600.30')), ('Clothing', Decimal('750.75'), Decimal('1351.05'))]
 # Valid: True
-# Variable avg_price: Type: float
-# Attributes/Methods: as_integer_ratio, conjugate, fromhex, hex, imag, is_integer, real
-# Variable symbol: Type: str
-# Attributes/Methods: capitalize, casefold, center, count, encode, endswith, expandtabs, find, format, format_map, index, isalnum, isalpha, isascii, isdecimal, isdigit, isidentifier, islower, isnumeric, isprintable, isspace, istitle, isupper, join, ljust, lower, lstrip, maketrans, partition, removeprefix, removesuffix, replace, rfind, rindex, rjust, rpartition, rsplit, rstrip, split, splitlines, startswith, strip, swapcase, title, translate, upper, zfill
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a table of stock prices
-conn.execute('CREATE TABLE stock_prices (symbol TEXT, price DECIMAL(10,2), date DATE)')
-
-# Insert sample stock data
-conn.executemany('INSERT INTO stock_prices VALUES (?, ?, ?)', [
-    ('AAPL', 150.25, '2023-07-01'),
-    ('GOOGL', 100.50, '2023-07-01'),
-    ('MSFT', 280.75, '2023-07-01')
+# Create category sales table
+conn.execute('CREATE TABLE category_sales (category TEXT, sale_amount DECIMAL(10,2))')
+conn.executemany('INSERT INTO category_sales VALUES (?, ?)', [
+    ('Electronics', 1000.50),
+    ('Electronics', 500.25),
+    ('Clothing', 750.75),
+    ('Clothing', 600.30)
 ])
 
-# Calculate average price for each stock symbol
-result = conn.execute('SELECT symbol, AVG(price) as avg_price FROM stock_prices GROUP BY symbol').fetchall()
+# Calculate running total per category using window function
+result = conn.execute('''
+    SELECT 
+        category, 
+        sale_amount, 
+        SUM(sale_amount) OVER (PARTITION BY category ORDER BY sale_amount) as running_total
+    FROM category_sales
+''').fetchall()
 
-for symbol, avg_price in result:
-    print(f'{symbol}: ${avg_price:.2f}')
+for row in result:
+    print(f"Category: {row[0]}, Sale Amount: ${row[1]}, Running Total: ${row[2]:.2f}")
