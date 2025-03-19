@@ -1,31 +1,27 @@
-# Generated: 2025-03-19 19:10:57.305275
+# Generated: 2025-03-19 19:12:41.536950
 # Result: [(0, 1), (1, 1), (2, 2), (3, 3), (4, 5), (5, 8), (6, 13), (7, 21), (8, 34), (9, 55), (10, 89)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate sales table
+# Create a table with geographic data
 conn.sql("""
-CREATE TABLE sales (
-    product_id INTEGER,
-    sale_date DATE,
-    quantity INTEGER,
-    price DECIMAL(10,2)
+CREATE TABLE cities (
+    city_name VARCHAR,
+    population INTEGER,
+    latitude DECIMAL(9,6),
+    longitude DECIMAL(9,6)
 );
 
-INSERT INTO sales VALUES
-(1, '2023-01-15', 5, 10.50),
-(1, '2023-02-20', 3, 10.50),
-(2, '2023-01-22', 2, 25.00),
-(2, '2023-03-10', 4, 25.00);
+INSERT INTO cities VALUES
+('New York', 8400000, 40.7128, -74.0060),
+('Los Angeles', 3900000, 34.0522, -118.2437),
+('Chicago', 2700000, 41.8781, -87.6298);
 
--- Calculate running total of sales by product using window function
-SELECT 
-    product_id, 
-    sale_date, 
-    quantity, 
-    SUM(quantity * price) OVER (PARTITION BY product_id ORDER BY sale_date) AS cumulative_sales
-FROM sales
-ORDER BY product_id, sale_date;
-""")
+-- Find cities within a bounding box using spatial predicate
+SELECT city_name, population
+FROM cities
+WHERE latitude BETWEEN 30 AND 45
+  AND longitude BETWEEN -120 AND -70;
+""").show()
