@@ -1,34 +1,33 @@
-# Generated: 2025-03-19 08:09:18.495066
-# Result: [('Electronics', Decimal('24008.75'), 1000.375), ('Clothing', Decimal('3000.00'), 150.0)]
+# Generated: 2025-03-19 08:10:11.242273
+# Result: [(1, Decimal('85.50'), Decimal('92.00')), (2, Decimal('78.50'), Decimal('88.00'))]
 # Valid: True
 import duckdb
 
-# Create in-memory database
 conn = duckdb.connect(':memory:')
 
-# Create sales dataset
+# Create a table of student test scores
 conn.execute('''
-CREATE TABLE sales (
-    product VARCHAR,
-    category VARCHAR,
-    quantity INTEGER,
-    price DECIMAL(10,2)
+CREATE TABLE student_scores (
+    student_id INT,
+    subject VARCHAR,
+    score DECIMAL(5,2)
 );
 
-INSERT INTO sales VALUES
-    ('Laptop', 'Electronics', 10, 1200.50),
-    ('Smartphone', 'Electronics', 15, 800.25),
-    ('Shoes', 'Clothing', 20, 150.00);
+INSERT INTO student_scores VALUES
+    (1, 'Math', 85.5),
+    (1, 'Science', 92.0),
+    (2, 'Math', 78.5),
+    (2, 'Science', 88.0);
 ''')
 
-# Analyze total sales by category
+# Use PIVOT to transform subject scores into columns
 result = conn.execute('''
 SELECT 
-    category, 
-    SUM(quantity * price) as total_revenue,
-    AVG(price) as avg_price
-FROM sales
-GROUP BY category
+    student_id,
+    MAX(CASE WHEN subject = 'Math' THEN score END) as math_score,
+    MAX(CASE WHEN subject = 'Science' THEN score END) as science_score
+FROM student_scores
+GROUP BY student_id
 ''').fetchall()
 
 for row in result:
