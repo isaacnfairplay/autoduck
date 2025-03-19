@@ -1,36 +1,33 @@
-# Generated: 2025-03-19 14:04:25.094928
-# Result: [('London', datetime.date(2023, 6, 1), Decimal('22.10'), 22.75), ('London', datetime.date(2023, 6, 2), Decimal('23.40'), 22.466666666666665), ('London', datetime.date(2023, 6, 3), Decimal('21.90'), 22.65), ('New York', datetime.date(2023, 6, 1), Decimal('28.50'), 29.35), ('New York', datetime.date(2023, 6, 2), Decimal('30.20'), 29.466666666666665), ('New York', datetime.date(2023, 6, 3), Decimal('29.70'), 29.95)]
+# Generated: 2025-03-19 14:06:58.056229
+# Result: [('San Francisco', 'New York', 48.502499986459924), ('Chicago', 'New York', 13.667293421681741), ('New York', 'San Francisco', 48.502499986459924), ('Chicago', 'San Francisco', 35.03776591025019), ('New York', 'Chicago', 13.667293421681741), ('San Francisco', 'Chicago', 35.03776591025019)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a time series table with daily temperature data
+# Create geospatial data table with point coordinates
 conn.execute('''
-CREATE TABLE temperatures (
-    date DATE,
+CREATE TABLE locations (
     city TEXT,
-    temp_celsius DECIMAL(5,2)
+    latitude DECIMAL(8,6),
+    longitude DECIMAL(9,6)
 );
 
-INSERT INTO temperatures VALUES
-    ('2023-06-01', 'New York', 28.5),
-    ('2023-06-02', 'New York', 30.2),
-    ('2023-06-03', 'New York', 29.7),
-    ('2023-06-01', 'London', 22.1),
-    ('2023-06-02', 'London', 23.4),
-    ('2023-06-03', 'London', 21.9);
+INSERT INTO locations VALUES
+    ('New York', 40.712776, -74.005974),
+    ('San Francisco', 37.774929, -122.419418),
+    ('Chicago', 41.881832, -87.623177);
 ''')
 
-# Perform moving average calculation using window function
+# Query to calculate distance between cities
 result = conn.execute('''
 SELECT 
-    city, 
-    date, 
-    temp_celsius,
-    AVG(temp_celsius) OVER (PARTITION BY city ORDER BY date ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) as moving_avg
-FROM temperatures
-ORDER BY city, date
+    l1.city as city1, 
+    l2.city as city2,
+    SQRT(POWER(l1.latitude - l2.latitude, 2) + POWER(l1.longitude - l2.longitude, 2)) as approximate_distance
+FROM locations l1
+CROSS JOIN locations l2
+WHERE l1.city != l2.city
 ''').fetchall()
 
 for row in result:
