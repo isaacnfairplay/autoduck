@@ -1,37 +1,31 @@
-# Generated: 2025-03-19 11:01:25.529939
+# Generated: 2025-03-19 11:03:09.249648
 # Result: [('Phone', 'South', Decimal('3200.75'), Decimal('3200.75')), ('Laptop', 'West', Decimal('4500.60'), Decimal('4500.60')), ('Laptop', 'North', Decimal('5000.50'), Decimal('5000.50')), ('Tablet', 'East', Decimal('2100.25'), Decimal('2100.25'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create employee hierarchy table
+# Creating sales tracking with quarterly window function analysis
 conn.execute('''
-CREATE TABLE employees (
-    employee_id INTEGER PRIMARY KEY,
-    name VARCHAR,
-    manager_id INTEGER
+CREATE TABLE sales (
+    product_id INTEGER,
+    quarter VARCHAR,
+    total_revenue DECIMAL(10,2)
 );
 
-INSERT INTO employees VALUES
-    (1, 'CEO', NULL),
-    (2, 'CTO', 1),
-    (3, 'CFO', 1),
-    (4, 'Senior Engineer', 2),
-    (5, 'Junior Engineer', 4);
+INSERT INTO sales VALUES
+    (1, 'Q1', 1000.00),
+    (1, 'Q2', 1200.00),
+    (1, 'Q3', 1500.00),
+    (1, 'Q4', 1800.00);
 
--- Recursive CTE to trace organizational hierarchy
-WITH RECURSIVE org_hierarchy AS (
-    SELECT employee_id, name, manager_id, 0 AS depth
-    FROM employees
-    WHERE manager_id IS NULL
-
-    UNION ALL
-
-    SELECT e.employee_id, e.name, e.manager_id, oh.depth + 1
-    FROM employees e
-    JOIN org_hierarchy oh ON e.manager_id = oh.employee_id
-)
-
-SELECT * FROM org_hierarchy ORDER BY depth, employee_id;
+-- Calculate cumulative and percent change across quarters
+SELECT 
+    product_id, 
+    quarter, 
+    total_revenue,
+    SUM(total_revenue) OVER (PARTITION BY product_id ORDER BY quarter) as cumulative_revenue,
+    (total_revenue - LAG(total_revenue) OVER (PARTITION BY product_id ORDER BY quarter)) / 
+        LAG(total_revenue) OVER (PARTITION BY product_id ORDER BY quarter) * 100 as revenue_percent_change
+FROM sales
 ''').fetchall()
