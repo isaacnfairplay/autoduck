@@ -1,27 +1,31 @@
-# Generated: 2025-03-19 20:00:09.884705
-# Result: [('Electronics', 'Laptop', Decimal('1200.50'), 1), ('Electronics', 'Phone', Decimal('800.25'), 2), ('Electronics', 'Tablet', Decimal('500.00'), 3), ('Clothing', 'Pants', Decimal('120.50'), 1), ('Clothing', 'Shirt', Decimal('75.00'), 2)]
+# Generated: 2025-03-19 20:01:03.695231
+# Result: [(1, 'Alice', 0, 'Alice'), (2, 'Bob', 1, 'Alice -> Bob'), (3, 'Charlie', 1, 'Alice -> Charlie'), (4, 'David', 2, 'Alice -> Bob -> David'), (5, 'Eve', 2, 'Alice -> Charlie -> Eve')]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sales data with rankings
-conn.execute('CREATE TABLE product_sales (category TEXT, product TEXT, sales DECIMAL(10,2))')
-conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?)', [
-    ['Electronics', 'Laptop', 1200.50],
-    ['Electronics', 'Phone', 800.25],
-    ['Electronics', 'Tablet', 500.00],
-    ['Clothing', 'Shirt', 75.00],
-    ['Clothing', 'Pants', 120.50]
+# Create organizational hierarchy table
+conn.execute('CREATE TABLE employees (id INT, name TEXT, manager_id INT)')
+conn.executemany('INSERT INTO employees VALUES (?, ?, ?)', [
+    [1, 'Alice', None],
+    [2, 'Bob', 1],
+    [3, 'Charlie', 1],
+    [4, 'David', 2],
+    [5, 'Eve', 3]
 ])
 
-# Rank products within category by sales
-result = conn.execute('''SELECT 
-    category, 
-    product, 
-    sales, 
-    RANK() OVER (PARTITION BY category ORDER BY sales DESC) as sales_rank
-FROM product_sales
+# Recursive CTE to trace full management chain
+result = conn.execute('''
+WITH RECURSIVE management_chain(id, name, level, path) AS (
+    SELECT id, name, 0, CAST(name AS VARCHAR) 
+    FROM employees WHERE manager_id IS NULL
+    UNION ALL
+    SELECT e.id, e.name, mc.level + 1, mc.path || ' -> ' || e.name
+    FROM employees e
+    JOIN management_chain mc ON e.manager_id = mc.id
+)
+SELECT * FROM management_chain
 ''').fetchall()
 
 for row in result:
