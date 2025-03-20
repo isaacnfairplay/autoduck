@@ -1,25 +1,36 @@
-# Generated: 2025-03-19 20:01:55.370590
-# Result: (Decimal('20.08'), Decimal('45.42'))
+# Generated: 2025-03-19 20:02:48.997055
+# Result: [('New York', 'San Francisco', 4129.09), ('New York', 'Chicago', 1144.29), ('San Francisco', 'Chicago', 2984.91)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample temperature data
-conn.execute('CREATE TABLE temperatures (city TEXT, temp DECIMAL(5,2))')
-conn.executemany('INSERT INTO temperatures VALUES (?, ?)', [
-    ['New York', 32.5],
-    ['Chicago', 25.3],
-    ['Los Angeles', 68.7],
-    ['Houston', 55.2]
+# Create geospatial points table
+conn.execute('CREATE TABLE locations (id INT, name TEXT, latitude FLOAT, longitude FLOAT)')
+conn.executemany('INSERT INTO locations VALUES (?, ?, ?, ?)', [
+    [1, 'New York', 40.7128, -74.0060],
+    [2, 'San Francisco', 37.7749, -122.4194],
+    [3, 'Chicago', 41.8781, -87.6298]
 ])
 
-# Custom aggregate calculating temperature variance across cities
+# Calculate great circle distance between cities
 result = conn.execute('''
 SELECT 
-    CAST(STDDEV(temp) AS DECIMAL(5,2)) as temperature_variability,
-    CAST(AVG(temp) AS DECIMAL(5,2)) as mean_temperature
-FROM temperatures
-''').fetchone()
+    l1.name as city1, 
+    l2.name as city2,
+    ROUND(
+        6371 * 2 * ASIN(
+            SQRT(
+                POWER(SIN((l1.latitude - l2.latitude) * PI() / 360), 2) +
+                COS(l1.latitude * PI() / 180) * COS(l2.latitude * PI() / 180) *
+                POWER(SIN((l1.longitude - l2.longitude) * PI() / 360), 2)
+            )
+        ), 2
+    ) as distance_km
+FROM locations l1
+CROSS JOIN locations l2
+WHERE l1.id < l2.id
+''').fetchall()
 
-print(f"Temperature Variability: {result[0]}°F, Mean: {result[1]}°F")
+for row in result:
+    print(f"{row[0]} to {row[1]}: {row[2]} km")
