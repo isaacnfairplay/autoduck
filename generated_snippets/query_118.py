@@ -1,34 +1,33 @@
-# Generated: 2025-03-19 21:28:46.787138
-# Result: [('North', 'Laptop', Decimal('5000.50'), Decimal('5000.50')), ('North', 'Desktop', Decimal('7500.25'), Decimal('12500.75')), ('South', 'Tablet', Decimal('3200.75'), Decimal('3200.75')), ('West', 'Tablet', Decimal('2900.60'), Decimal('2900.60')), ('East', 'Laptop', Decimal('4800.00'), Decimal('4800.00'))]
+# Generated: 2025-03-19 21:29:38.161233
+# Result: [(3, 'Sales', Decimal('95.70'), 1), (1, 'Sales', Decimal('92.50'), 2), (5, 'Engineering', Decimal('89.60'), 1), (4, 'Marketing', Decimal('91.20'), 1), (2, 'Marketing', Decimal('88.30'), 2)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a table with geographical sales data
-conn.execute('''CREATE TABLE sales (
-    region VARCHAR,
-    product VARCHAR,
-    revenue DECIMAL(10,2)
+# Create a sample table with employee performance data
+conn.execute('''CREATE TABLE employee_performance (
+    employee_id INT,
+    department VARCHAR,
+    performance_score DECIMAL(5,2)
 )''')
 
-# Insert sample sales data
-conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
-    ('North', 'Laptop', 5000.50),
-    ('South', 'Tablet', 3200.75),
-    ('North', 'Desktop', 7500.25),
-    ('East', 'Laptop', 4800.00),
-    ('West', 'Tablet', 2900.60)
+# Insert sample performance data
+conn.executemany('INSERT INTO employee_performance VALUES (?, ?, ?)', [
+    (1, 'Sales', 92.5),
+    (2, 'Marketing', 88.3),
+    (3, 'Sales', 95.7),
+    (4, 'Marketing', 91.2),
+    (5, 'Engineering', 89.6)
 ])
 
-# Perform window function to calculate running total by region
-result = conn.sql('''
-    SELECT 
-        region, 
-        product, 
-        revenue,
-        SUM(revenue) OVER (PARTITION BY region ORDER BY revenue) as running_total
-    FROM sales
+# Use window functions to rank employees within each department
+result = conn.sql('''SELECT 
+    employee_id,
+    department,
+    performance_score,
+    RANK() OVER (PARTITION BY department ORDER BY performance_score DESC) as dept_rank
+FROM employee_performance
 ''').fetchall()
 
 print(result)
