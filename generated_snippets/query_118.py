@@ -1,38 +1,36 @@
-# Generated: 2025-03-19 20:32:17.350348
-# Result: [(102, datetime.date(2023, 5, 16), 'Smartphone', Decimal('800.50'), Decimal('800.50')), (101, datetime.date(2023, 5, 15), 'Laptop', Decimal('2400.99'), Decimal('2400.99')), (101, datetime.date(2023, 5, 17), 'Headphones', Decimal('450.75'), Decimal('2851.74'))]
+# Generated: 2025-03-19 20:33:11.005222
+# Result: [('South', 'All', Decimal('177000.25')), ('All', 'All', Decimal('447001.50')), ('North', 'Laptop', Decimal('270001.25')), ('North', 'All', Decimal('270001.25')), ('South', 'Tablet', Decimal('177000.25')), ('All', 'Laptop', Decimal('270001.25')), ('All', 'Tablet', Decimal('177000.25'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a table for order tracking
+# Create sales table with multidimensional data
 conn.execute('''
-CREATE TABLE orders (
-    order_id INTEGER,
-    customer_id INTEGER,
-    product_name VARCHAR,
-    order_date DATE,
-    quantity INTEGER,
-    total_price DECIMAL(10,2)
-);
-''')
+CREATE TABLE product_sales (
+    region VARCHAR,
+    product VARCHAR,
+    quarter INTEGER,
+    year INTEGER,
+    total_sales DECIMAL(10,2)
+);''')
 
-# Insert sample order data
-conn.executemany('INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?)', [
-    (1, 101, 'Laptop', '2023-05-15', 2, 2400.99),
-    (2, 102, 'Smartphone', '2023-05-16', 1, 800.50),
-    (3, 101, 'Headphones', '2023-05-17', 3, 450.75)
+# Insert sample multidimensional sales data
+conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?, ?, ?)', [
+    ('North', 'Laptop', 1, 2023, 125000.50),
+    ('North', 'Laptop', 2, 2023, 145000.75),
+    ('South', 'Tablet', 1, 2023, 85000.25),
+    ('South', 'Tablet', 2, 2023, 92000.00)
 ])
 
-# Perform complex analytics query with window functions
+# Analyze sales with CUBE for comprehensive aggregation
 result = conn.execute('''
 SELECT 
-    customer_id,
-    order_date,
-    product_name,
-    total_price,
-    SUM(total_price) OVER (PARTITION BY customer_id ORDER BY order_date) as cumulative_spend
-FROM orders
+    COALESCE(region, 'All') as region,
+    COALESCE(product, 'All') as product,
+    SUM(total_sales) as total_sales
+FROM product_sales
+GROUP BY CUBE(region, product)
 ''').fetchall()
 
 print(result)
