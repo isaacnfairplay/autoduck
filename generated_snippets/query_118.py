@@ -1,34 +1,31 @@
-# Generated: 2025-03-19 20:42:33.187787
-# Result: [(1, datetime.datetime(2023, 6, 15, 10, 0), Decimal('22.50'), 0.0), (1, datetime.datetime(2023, 6, 15, 10, 15), Decimal('23.10'), 0.3000000000000007), (2, datetime.datetime(2023, 6, 15, 10, 0), Decimal('21.70'), 0.0)]
+# Generated: 2025-03-19 20:43:24.627156
+# Result: [('Electronics', 'Laptop', Decimal('1200.50')), ('Electronics', 'Smartphone', Decimal('800.75')), ('Clothing', 'Pants', Decimal('100.00')), ('Clothing', 'Shirt', Decimal('50.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sensors table for time series data
-conn.execute('''
-CREATE TABLE sensor_readings (
-    sensor_id INTEGER,
-    timestamp TIMESTAMP,
-    temperature DECIMAL(5,2),
-    humidity DECIMAL(5,2)
-);''')
+# Create products table
+conn.execute('CREATE TABLE products (category TEXT, product TEXT, sales DECIMAL(10,2))')
 
-# Insert sample sensor data
-conn.executemany('INSERT INTO sensor_readings VALUES (?, ?, ?, ?)', [
-    (1, '2023-06-15 10:00:00', 22.5, 45.3),
-    (1, '2023-06-15 10:15:00', 23.1, 46.0),
-    (2, '2023-06-15 10:00:00', 21.7, 42.8)
+# Insert sample data
+conn.executemany('INSERT INTO products VALUES (?, ?, ?)', [
+    ('Electronics', 'Laptop', 1200.50),
+    ('Electronics', 'Smartphone', 800.75),
+    ('Electronics', 'Tablet', 500.25),
+    ('Clothing', 'Shirt', 50.00),
+    ('Clothing', 'Pants', 100.00)
 ])
 
-# Use window functions to calculate temperature change
+# Use QUALIFY to get top 2 products per category
 result = conn.execute('''
-SELECT 
-    sensor_id, 
-    timestamp,
-    temperature,
-    temperature - AVG(temperature) OVER (PARTITION BY sensor_id ORDER BY timestamp ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) as temp_deviation
-FROM sensor_readings
+SELECT category, product, sales
+FROM (
+    SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY sales DESC) as rank
+    FROM products
+) ranked_products
+WHERE rank <= 2
 ''').fetchall()
 
 print(result)
