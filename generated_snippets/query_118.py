@@ -1,28 +1,26 @@
-# Generated: 2025-03-19 21:20:02.381491
-# Result: [('Laptop', Decimal('1500.000'), datetime.date(2023, 2, 10), Decimal('2700.000'), 1), ('Laptop', Decimal('1200.000'), datetime.date(2023, 1, 15), Decimal('1200.000'), 2), ('Phone', Decimal('800.000'), datetime.date(2023, 1, 16), Decimal('800.000'), 3), ('Tablet', Decimal('500.000'), datetime.date(2023, 2, 15), Decimal('500.000'), 4)]
+# Generated: 2025-03-19 21:20:55.852224
+# Result: [('GOOGL', Decimal('100.750'), datetime.date(2024, 1, 1), None, Decimal('102.300')), ('GOOGL', Decimal('102.300'), datetime.date(2024, 1, 2), Decimal('100.750'), None), ('AAPL', Decimal('150.250'), datetime.date(2024, 1, 1), None, Decimal('152.500')), ('AAPL', Decimal('152.500'), datetime.date(2024, 1, 2), Decimal('150.250'), None)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a sample sales table with window functions
-conn.execute('CREATE TABLE sales (product VARCHAR, amount DECIMAL, sale_date DATE)')
-conn.execute("""INSERT INTO sales VALUES
-    ('Laptop', 1200.00, '2023-01-15'),
-    ('Phone', 800.00, '2023-01-16'),
-    ('Laptop', 1500.00, '2023-02-10'),
-    ('Tablet', 500.00, '2023-02-15')
+# Create and populate a time series table
+conn.execute('CREATE TABLE stock_prices (symbol VARCHAR, price DECIMAL, trade_date DATE)')
+conn.execute("""INSERT INTO stock_prices VALUES
+    ('AAPL', 150.25, '2024-01-01'),
+    ('AAPL', 152.50, '2024-01-02'),
+    ('GOOGL', 100.75, '2024-01-01'),
+    ('GOOGL', 102.30, '2024-01-02')
 """)
 
-# Calculate running total and rank sales by amount
-result = conn.execute("""
-    SELECT 
-        product, 
-        amount, 
-        sale_date,
-        SUM(amount) OVER (PARTITION BY product ORDER BY sale_date) as running_total,
-        RANK() OVER (ORDER BY amount DESC) as sales_rank
-    FROM sales
-""").fetchall()
+# Demonstrate time series window function with lead/lag
+result = conn.execute("""SELECT
+    symbol, 
+    price,
+    trade_date,
+    LAG(price) OVER (PARTITION BY symbol ORDER BY trade_date) as previous_price,
+    LEAD(price) OVER (PARTITION BY symbol ORDER BY trade_date) as next_price
+    FROM stock_prices""").fetchall()
 
 print(result)
