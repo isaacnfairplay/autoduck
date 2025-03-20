@@ -1,36 +1,38 @@
-# Generated: 2025-03-19 20:31:23.919064
-# Result: [(datetime.date(2023, 1, 3), 'GOOG', Decimal('90.75'), None), (datetime.date(2023, 1, 1), 'AAPL', Decimal('145.50'), None), (datetime.date(2023, 1, 2), 'AAPL', Decimal('147.25'), Decimal('1.75'))]
+# Generated: 2025-03-19 20:32:17.350348
+# Result: [(102, datetime.date(2023, 5, 16), 'Smartphone', Decimal('800.50'), Decimal('800.50')), (101, datetime.date(2023, 5, 15), 'Laptop', Decimal('2400.99'), Decimal('2400.99')), (101, datetime.date(2023, 5, 17), 'Headphones', Decimal('450.75'), Decimal('2851.74'))]
 # Valid: True
 import duckdb
 
-# Create an in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Create a sample time series table
+# Create a table for order tracking
 conn.execute('''
-    CREATE TABLE stock_prices (
-        date DATE,
-        symbol VARCHAR,
-        price DECIMAL(10,2),
-        volume INTEGER
-    );
+CREATE TABLE orders (
+    order_id INTEGER,
+    customer_id INTEGER,
+    product_name VARCHAR,
+    order_date DATE,
+    quantity INTEGER,
+    total_price DECIMAL(10,2)
+);
 ''')
 
-# Insert sample stock price data
-conn.executemany('INSERT INTO stock_prices VALUES (?, ?, ?, ?)', [
-    ('2023-01-01', 'AAPL', 145.50, 1000000),
-    ('2023-01-02', 'AAPL', 147.25, 1200000),
-    ('2023-01-03', 'GOOG', 90.75, 800000)
+# Insert sample order data
+conn.executemany('INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?)', [
+    (1, 101, 'Laptop', '2023-05-15', 2, 2400.99),
+    (2, 102, 'Smartphone', '2023-05-16', 1, 800.50),
+    (3, 101, 'Headphones', '2023-05-17', 3, 450.75)
 ])
 
-# Use window function to calculate price change
+# Perform complex analytics query with window functions
 result = conn.execute('''
-    SELECT 
-        date, 
-        symbol, 
-        price,
-        price - LAG(price) OVER (PARTITION BY symbol ORDER BY date) as price_change
-    FROM stock_prices
+SELECT 
+    customer_id,
+    order_date,
+    product_name,
+    total_price,
+    SUM(total_price) OVER (PARTITION BY customer_id ORDER BY order_date) as cumulative_spend
+FROM orders
 ''').fetchall()
 
 print(result)
