@@ -1,34 +1,20 @@
-# Generated: 2025-03-19 20:51:11.423280
-# Result: [('Widget', 'South', Decimal('1250.75'), 1), ('Gadget', 'South', Decimal('750.25'), 2), ('Widget', 'North', Decimal('1000.50'), 1), ('Gadget', 'North', Decimal('850.60'), 2)]
+# Generated: 2025-03-19 20:52:06.069794
+# Result: [([1, 4, 9, 16, 25],)]
 # Valid: True
 import duckdb
 
-# Create an in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Create sample table with sales data
-conn.execute('''
-    CREATE TABLE sales (
-        product TEXT,
-        region TEXT,
-        amount DECIMAL(10,2)
-    );
+# Create table with list column
+conn.sql("""
+CREATE TABLE numbers AS
+SELECT [1, 2, 3, 4, 5] AS values
+""")
 
-    INSERT INTO sales VALUES
-        ('Widget', 'North', 1000.50),
-        ('Gadget', 'South', 750.25),
-        ('Widget', 'South', 1250.75),
-        ('Gadget', 'North', 850.60);
-''')
+# Transform list by squaring each element
+result = conn.sql("""
+SELECT array_transform(values, x -> x * x) AS squared_values
+FROM numbers
+""").fetchall()
 
-# Perform window ranking of sales by region
-result = conn.execute('''
-    SELECT 
-        product, 
-        region, 
-        amount,
-        RANK() OVER (PARTITION BY region ORDER BY amount DESC) as regional_rank
-    FROM sales
-''').fetchall()
-
-print(result)
+print(result)  # Should output: [[1, 4, 9, 16, 25]]
