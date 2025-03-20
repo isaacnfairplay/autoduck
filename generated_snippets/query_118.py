@@ -1,23 +1,35 @@
-# Generated: 2025-03-19 21:10:29.235579
-# Result: [(datetime.date(2023, 1, 1), Decimal('100.00'), 100.0), (datetime.date(2023, 1, 2), Decimal('102.50'), 101.25), (datetime.date(2023, 1, 3), Decimal('101.75'), 101.41666666666667), (datetime.date(2023, 1, 4), Decimal('103.25'), 102.5), (datetime.date(2023, 1, 5), Decimal('105.00'), 103.33333333333333)]
+# Generated: 2025-03-19 21:11:21.940082
+# Result: [('Sales', 'Alice', Decimal('55000.00'), 1, 53500.0), ('Sales', 'Charlie', Decimal('52000.00'), 2, 53500.0), ('Marketing', 'David', Decimal('65000.00'), 1, 62500.0), ('Marketing', 'Bob', Decimal('60000.00'), 2, 62500.0)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table with numeric array
-conn.sql("""
-CREATE TABLE numeric_arrays (
+# Create table with employee data
+conn.sql('''
+CREATE TABLE employees (
     id INTEGER,
-    values INTEGER[]
+    name VARCHAR,
+    department VARCHAR,
+    salary DECIMAL(10,2)
 );
 
-INSERT INTO numeric_arrays VALUES
-    (1, [1, 2, 3]),
-    (2, [4, 5, 6]);
+INSERT INTO employees VALUES
+    (1, 'Alice', 'Sales', 55000),
+    (2, 'Bob', 'Marketing', 60000),
+    (3, 'Charlie', 'Sales', 52000),
+    (4, 'David', 'Marketing', 65000);
+''');
 
+# Perform complex group-level window function
+result = conn.sql('''
 SELECT
-    id,
-    array_transform(values, x -> x + 10) AS transformed_values
-FROM numeric_arrays;
-""").show()
+    department,
+    name,
+    salary,
+    RANK() OVER (PARTITION BY department ORDER BY salary DESC) as dept_salary_rank,
+    AVG(salary) OVER (PARTITION BY department) as dept_avg_salary
+FROM employees
+''').fetchall()
+
+print(result)
