@@ -1,21 +1,35 @@
-# Generated: 2025-03-19 20:45:07.369594
-# Result: [(1, 'Laptop', Decimal('1200.50')), (2, 'Smartphone', Decimal('800.75')), (3, 'Tablet', Decimal('500.00'))]
+# Generated: 2025-03-19 20:45:59.196203
+# Result: [('Electronics', 'South', Decimal('145000.75')), ('Electronics', 'North', Decimal('125000.50')), ('Electronics', 'East', Decimal('92000.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample table
-conn.execute('CREATE TABLE products (id INTEGER, name VARCHAR, price DECIMAL(10,2))')
+# Create multi-dimensional sales table
+conn.execute('''
+CREATE TABLE product_sales (
+    category VARCHAR,
+    product VARCHAR,
+    total_sales DECIMAL(10,2),
+    region VARCHAR
+);
+''')
 
-# Insert sample data
-conn.executemany('INSERT INTO products VALUES (?, ?, ?)', [
-    (1, 'Laptop', 1200.50),
-    (2, 'Smartphone', 800.75),
-    (3, 'Tablet', 500.00)
+# Insert sample sales data
+conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?, ?)', [
+    ('Electronics', 'Laptop', 125000.50, 'North'),
+    ('Electronics', 'Smartphone', 145000.75, 'South'),
+    ('Electronics', 'Tablet', 92000.00, 'East')
 ])
 
-# Select all rows
-result = conn.execute('SELECT * FROM products').fetchall()
+# Perform multi-dimensional sales analysis
+result = conn.execute('''
+SELECT 
+    category, 
+    region, 
+    SUM(total_sales) as total_sales
+FROM product_sales
+GROUP BY category, region
+''').fetchall()
 
 print(result)
