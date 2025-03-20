@@ -1,34 +1,14 @@
-# Generated: 2025-03-19 20:55:40.866751
-# Result: [('East', 1, Decimal('42000.75')), ('North', 1, Decimal('50000.50'))]
+# Generated: 2025-03-19 20:56:30.676886
+# Result: [([11, 12, 13, 14, 15],)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create and populate geographical sales dataset
-conn.sql('''
-CREATE TABLE sales (
-    product VARCHAR,
-    region VARCHAR,
-    sales_amount DECIMAL(10,2)
-);
+# Create table with numeric list
+conn.sql("""CREATE TABLE numbers AS SELECT [1, 2, 3, 4, 5] AS values""")
 
-INSERT INTO sales VALUES
-('Laptop', 'North', 50000.50),
-('Desktop', 'South', 35000.25),
-('Tablet', 'East', 42000.75);
-'''
-)
+# Transform list by adding 10 to each element
+result = conn.sql("""SELECT array_transform(values, x -> x + 10) AS transformed_values FROM numbers""").fetchall()
 
-# Demonstrate advanced group-by with HAVING clause
-result = conn.sql('''
-SELECT 
-    region, 
-    COUNT(*) as product_count,
-    SUM(sales_amount) as total_sales
-FROM sales
-GROUP BY region
-HAVING SUM(sales_amount) > 40000
-''').fetchall()
-
-print(result)
+print(result)  # Should output: [[11, 12, 13, 14, 15]]
