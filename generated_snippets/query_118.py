@@ -1,35 +1,31 @@
-# Generated: 2025-03-19 20:49:23.616390
-# Result: [(102, datetime.date(2023, 6, 16), Decimal('150.50'), Decimal('150.50')), (101, datetime.date(2023, 6, 15), Decimal('250.75'), Decimal('250.75')), (101, datetime.date(2023, 6, 17), Decimal('350.25'), Decimal('601.00'))]
+# Generated: 2025-03-19 20:50:15.894212
+# Result: [('Electronics', 'Laptop', Decimal('1200.50')), ('Electronics', 'Smartphone', Decimal('800.75')), ('Clothing', 'Pants', Decimal('100.00')), ('Clothing', 'Shirt', Decimal('50.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample table for customer orders
-conn.execute('''
-CREATE TABLE orders (
-    order_id INTEGER,
-    customer_id INTEGER,
-    total_amount DECIMAL(10,2),
-    order_date DATE
-);
-''')
+# Create product sales table
+conn.execute('CREATE TABLE product_sales (category TEXT, product TEXT, sales DECIMAL(10,2))')
 
-# Insert sample order data
-conn.executemany('INSERT INTO orders VALUES (?, ?, ?, ?)', [
-    (1, 101, 250.75, '2023-06-15'),
-    (2, 102, 150.50, '2023-06-16'),
-    (3, 101, 350.25, '2023-06-17')
+# Insert sample data
+conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?)', [
+    ('Electronics', 'Laptop', 1200.50),
+    ('Electronics', 'Smartphone', 800.75),
+    ('Electronics', 'Tablet', 500.25),
+    ('Clothing', 'Shirt', 50.00),
+    ('Clothing', 'Pants', 100.00)
 ])
 
-# Perform aggregation with window function
+# Use QUALIFY to get top 2 products per category by sales
 result = conn.execute('''
-SELECT 
-    customer_id, 
-    order_date, 
-    total_amount,
-    SUM(total_amount) OVER (PARTITION BY customer_id ORDER BY order_date) as cumulative_spend
-FROM orders
+SELECT category, product, sales
+FROM (
+    SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY sales DESC) as rank
+    FROM product_sales
+) ranked_products
+WHERE rank <= 2
 ''').fetchall()
 
 print(result)
