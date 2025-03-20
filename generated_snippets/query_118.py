@@ -1,17 +1,34 @@
-# Generated: 2025-03-19 21:27:52.908690
-# Result: [([1, 4, 9, 16, 25],)]
+# Generated: 2025-03-19 21:28:46.787138
+# Result: [('North', 'Laptop', Decimal('5000.50'), Decimal('5000.50')), ('North', 'Desktop', Decimal('7500.25'), Decimal('12500.75')), ('South', 'Tablet', Decimal('3200.75'), Decimal('3200.75')), ('West', 'Tablet', Decimal('2900.60'), Decimal('2900.60')), ('East', 'Laptop', Decimal('4800.00'), Decimal('4800.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample list of integers
-conn.sql('CREATE TABLE numbers AS SELECT [1, 2, 3, 4, 5] AS num_list')
+# Create a table with geographical sales data
+conn.execute('''CREATE TABLE sales (
+    region VARCHAR,
+    product VARCHAR,
+    revenue DECIMAL(10,2)
+)''')
 
-# Use array_transform to square each element
+# Insert sample sales data
+conn.executemany('INSERT INTO sales VALUES (?, ?, ?)', [
+    ('North', 'Laptop', 5000.50),
+    ('South', 'Tablet', 3200.75),
+    ('North', 'Desktop', 7500.25),
+    ('East', 'Laptop', 4800.00),
+    ('West', 'Tablet', 2900.60)
+])
+
+# Perform window function to calculate running total by region
 result = conn.sql('''
-    SELECT array_transform(num_list, x -> x * x) AS squared_list
-    FROM numbers
+    SELECT 
+        region, 
+        product, 
+        revenue,
+        SUM(revenue) OVER (PARTITION BY region ORDER BY revenue) as running_total
+    FROM sales
 ''').fetchall()
 
-print(result)  # Should output: [[1, 4, 9, 16, 25]]
+print(result)
