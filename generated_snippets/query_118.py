@@ -1,35 +1,34 @@
-# Generated: 2025-03-19 20:54:40.698883
-# Result: [(101, datetime.datetime(2023, 6, 15, 8, 0), datetime.datetime(2023, 6, 15, 10, 30), datetime.timedelta(seconds=9000), datetime.datetime(2023, 6, 15, 8, 0)), (102, datetime.datetime(2023, 6, 15, 9, 15), datetime.datetime(2023, 6, 15, 11, 45), datetime.timedelta(seconds=9000), datetime.datetime(2023, 6, 15, 9, 0)), (103, datetime.datetime(2023, 6, 15, 10, 30), datetime.datetime(2023, 6, 15, 13, 0), datetime.timedelta(seconds=9000), datetime.datetime(2023, 6, 15, 10, 0))]
+# Generated: 2025-03-19 20:55:40.866751
+# Result: [('East', 1, Decimal('42000.75')), ('North', 1, Decimal('50000.50'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create temporal dataset
+# Create and populate geographical sales dataset
 conn.sql('''
-CREATE TABLE flights (
-    flight_id INTEGER,
-    departure_time TIMESTAMP,
-    arrival_time TIMESTAMP,
-    duration_minutes INTEGER
+CREATE TABLE sales (
+    product VARCHAR,
+    region VARCHAR,
+    sales_amount DECIMAL(10,2)
 );
 
-INSERT INTO flights VALUES
-(101, '2023-06-15 08:00:00', '2023-06-15 10:30:00', 150),
-(102, '2023-06-15 09:15:00', '2023-06-15 11:45:00', 150),
-(103, '2023-06-15 10:30:00', '2023-06-15 13:00:00', 150);
+INSERT INTO sales VALUES
+('Laptop', 'North', 50000.50),
+('Desktop', 'South', 35000.25),
+('Tablet', 'East', 42000.75);
 '''
 )
 
-# Demonstrate timestamp function and interval calculation
+# Demonstrate advanced group-by with HAVING clause
 result = conn.sql('''
 SELECT 
-    flight_id,
-    departure_time,
-    arrival_time,
-    (arrival_time - departure_time) AS actual_duration,
-    date_trunc('hour', departure_time) AS departure_hour
-FROM flights
+    region, 
+    COUNT(*) as product_count,
+    SUM(sales_amount) as total_sales
+FROM sales
+GROUP BY region
+HAVING SUM(sales_amount) > 40000
 ''').fetchall()
 
 print(result)
