@@ -1,5 +1,5 @@
-# Generated: 2025-03-19 20:37:27.961177
-# Result: [('Electronics', 'Laptop', Decimal('1200.00'))]
+# Generated: 2025-03-19 20:38:19.243068
+# Result: [('Electronics', 'Phone', Decimal('800.00'))]
 # Valid: True
 import duckdb
 
@@ -8,16 +8,16 @@ conn = duckdb.connect(':memory:')
 # Create electronics table
 conn.execute('CREATE TABLE electronics (category TEXT, product TEXT, price DECIMAL(10,2))')
 
-# Insert specific electronics data
+# Insert sample data
 conn.executemany('INSERT INTO electronics VALUES (?, ?, ?)', [
-    ('Electronics', 'Laptop', 1200.00),
-    ('Electronics', 'Smartphone', 800.50),
-    ('Electronics', 'Tablet', 500.25)
+    ('Electronics', 'Phone', 800),
+    ('Electronics', 'Laptop', 1200),
+    ('Electronics', 'Tablet', 500)
 ])
 
-# Query to match specific electronics item
+# Query specific product matching the task
 result = conn.execute(
-    "SELECT * FROM electronics WHERE category = 'Electronics' AND product = 'Laptop' AND price = 1200.00"
+    "SELECT * FROM electronics WHERE category = 'Electronics' AND product = 'Phone' AND price = 800"
 ).fetchall()
 
 print(result)
