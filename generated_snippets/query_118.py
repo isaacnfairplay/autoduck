@@ -1,35 +1,21 @@
-# Generated: 2025-03-19 20:44:16.890631
-# Result: [('All', 'All', Decimal('362001.25')), ('Electronics', 'All', Decimal('362001.25')), ('Electronics', 'East', Decimal('92000.00')), ('Electronics', 'North', Decimal('125000.50')), ('Electronics', 'South', Decimal('145000.75'))]
+# Generated: 2025-03-19 20:45:07.369594
+# Result: [(1, 'Laptop', Decimal('1200.50')), (2, 'Smartphone', Decimal('800.75')), (3, 'Tablet', Decimal('500.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create a products table with sales tracking
-conn.execute('''
-CREATE TABLE product_sales (
-    category VARCHAR,
-    product VARCHAR,
-    total_sales DECIMAL(10,2),
-    region VARCHAR
-);
-''')
+# Create sample table
+conn.execute('CREATE TABLE products (id INTEGER, name VARCHAR, price DECIMAL(10,2))')
 
-# Insert sample multi-dimensional sales data
-conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?, ?)', [
-    ('Electronics', 'Laptop', 125000.50, 'North'),
-    ('Electronics', 'Smartphone', 145000.75, 'South'),
-    ('Electronics', 'Tablet', 92000.00, 'East')
+# Insert sample data
+conn.executemany('INSERT INTO products VALUES (?, ?, ?)', [
+    (1, 'Laptop', 1200.50),
+    (2, 'Smartphone', 800.75),
+    (3, 'Tablet', 500.00)
 ])
 
-# Use advanced analytics with ROLLUP to get comprehensive sales summary
-result = conn.execute('''
-SELECT 
-    COALESCE(category, 'All') as category,
-    COALESCE(region, 'All') as region,
-    SUM(total_sales) as total_sales
-FROM product_sales
-GROUP BY ROLLUP(category, region)
-''').fetchall()
+# Select all rows
+result = conn.execute('SELECT * FROM products').fetchall()
 
 print(result)
