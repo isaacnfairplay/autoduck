@@ -1,35 +1,31 @@
-# Generated: 2025-03-19 20:45:59.196203
-# Result: [('Electronics', 'South', Decimal('145000.75')), ('Electronics', 'North', Decimal('125000.50')), ('Electronics', 'East', Decimal('92000.00'))]
+# Generated: 2025-03-19 20:46:51.528654
+# Result: [('Electronics', 'Laptop', Decimal('1200.50')), ('Electronics', 'Smartphone', Decimal('800.75')), ('Clothing', 'Pants', Decimal('100.00')), ('Clothing', 'Shirt', Decimal('50.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create multi-dimensional sales table
-conn.execute('''
-CREATE TABLE product_sales (
-    category VARCHAR,
-    product VARCHAR,
-    total_sales DECIMAL(10,2),
-    region VARCHAR
-);
-''')
+# Create product sales table
+conn.execute('CREATE TABLE product_sales (category TEXT, product TEXT, sales DECIMAL(10,2))')
 
-# Insert sample sales data
-conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?, ?)', [
-    ('Electronics', 'Laptop', 125000.50, 'North'),
-    ('Electronics', 'Smartphone', 145000.75, 'South'),
-    ('Electronics', 'Tablet', 92000.00, 'East')
+# Insert sample data
+conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?)', [
+    ('Electronics', 'Laptop', 1200.50),
+    ('Electronics', 'Smartphone', 800.75),
+    ('Electronics', 'Tablet', 500.25),
+    ('Clothing', 'Shirt', 50.00),
+    ('Clothing', 'Pants', 100.00)
 ])
 
-# Perform multi-dimensional sales analysis
+# Use QUALIFY to get top 2 products per category by sales
 result = conn.execute('''
-SELECT 
-    category, 
-    region, 
-    SUM(total_sales) as total_sales
-FROM product_sales
-GROUP BY category, region
+SELECT category, product, sales
+FROM (
+    SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY sales DESC) as rank
+    FROM product_sales
+) ranked_products
+WHERE rank <= 2
 ''').fetchall()
 
 print(result)
