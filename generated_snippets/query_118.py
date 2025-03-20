@@ -1,31 +1,34 @@
-# Generated: 2025-03-19 20:50:15.894212
-# Result: [('Electronics', 'Laptop', Decimal('1200.50')), ('Electronics', 'Smartphone', Decimal('800.75')), ('Clothing', 'Pants', Decimal('100.00')), ('Clothing', 'Shirt', Decimal('50.00'))]
+# Generated: 2025-03-19 20:51:11.423280
+# Result: [('Widget', 'South', Decimal('1250.75'), 1), ('Gadget', 'South', Decimal('750.25'), 2), ('Widget', 'North', Decimal('1000.50'), 1), ('Gadget', 'North', Decimal('850.60'), 2)]
 # Valid: True
 import duckdb
 
+# Create an in-memory connection
 conn = duckdb.connect(':memory:')
 
-# Create product sales table
-conn.execute('CREATE TABLE product_sales (category TEXT, product TEXT, sales DECIMAL(10,2))')
+# Create sample table with sales data
+conn.execute('''
+    CREATE TABLE sales (
+        product TEXT,
+        region TEXT,
+        amount DECIMAL(10,2)
+    );
 
-# Insert sample data
-conn.executemany('INSERT INTO product_sales VALUES (?, ?, ?)', [
-    ('Electronics', 'Laptop', 1200.50),
-    ('Electronics', 'Smartphone', 800.75),
-    ('Electronics', 'Tablet', 500.25),
-    ('Clothing', 'Shirt', 50.00),
-    ('Clothing', 'Pants', 100.00)
-])
+    INSERT INTO sales VALUES
+        ('Widget', 'North', 1000.50),
+        ('Gadget', 'South', 750.25),
+        ('Widget', 'South', 1250.75),
+        ('Gadget', 'North', 850.60);
+''')
 
-# Use QUALIFY to get top 2 products per category by sales
+# Perform window ranking of sales by region
 result = conn.execute('''
-SELECT category, product, sales
-FROM (
-    SELECT *,
-    ROW_NUMBER() OVER (PARTITION BY category ORDER BY sales DESC) as rank
-    FROM product_sales
-) ranked_products
-WHERE rank <= 2
+    SELECT 
+        product, 
+        region, 
+        amount,
+        RANK() OVER (PARTITION BY region ORDER BY amount DESC) as regional_rank
+    FROM sales
 ''').fetchall()
 
 print(result)
