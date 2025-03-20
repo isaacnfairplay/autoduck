@@ -1,14 +1,34 @@
-# Generated: 2025-03-19 20:56:30.676886
-# Result: [([11, 12, 13, 14, 15],)]
+# Generated: 2025-03-19 20:57:23.134306
+# Result: [('USA', 'Laptop', Decimal('50000.50'), 1, 1), ('Japan', 'Tablet', Decimal('42000.75'), 2, 2), ('Germany', 'Desktop', Decimal('35000.25'), 3, 3)]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table with numeric list
-conn.sql("""CREATE TABLE numbers AS SELECT [1, 2, 3, 4, 5] AS values""")
+# Create custom table with geographic sales data
+conn.sql('''
+CREATE TABLE world_sales (
+    country VARCHAR,
+    product VARCHAR,
+    sales_amount DECIMAL(10,2),
+    sales_quarter VARCHAR
+);
 
-# Transform list by adding 10 to each element
-result = conn.sql("""SELECT array_transform(values, x -> x + 10) AS transformed_values FROM numbers""").fetchall()
+INSERT INTO world_sales VALUES
+('USA', 'Laptop', 50000.50, 'Q1'),
+('Germany', 'Desktop', 35000.25, 'Q2'),
+('Japan', 'Tablet', 42000.75, 'Q1');
+''')
 
-print(result)  # Should output: [[11, 12, 13, 14, 15]]
+# Demonstrate advanced window function with rank and dense_rank
+result = conn.sql('''
+SELECT
+    country,
+    product,
+    sales_amount,
+    RANK() OVER (ORDER BY sales_amount DESC) as sales_rank,
+    DENSE_RANK() OVER (ORDER BY sales_amount DESC) as dense_sales_rank
+FROM world_sales
+''').fetchall()
+
+print(result)
