@@ -1,21 +1,18 @@
-# Generated: 2025-03-19 20:40:50.721298
-# Result: [('Clothing', 'Pants', Decimal('100.00'))]
+# Generated: 2025-03-19 20:41:40.524332
+# Result: [('Electronics', 'Laptop', Decimal('1200.50')), ('Electronics', 'Smartphone', Decimal('800.75'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create clothing table
-conn.execute('CREATE TABLE clothing (category TEXT, product TEXT, price DECIMAL(10,2))')
-
-# Insert sample data for Pants
-conn.executemany('INSERT INTO clothing VALUES (?, ?, ?)', [
-    ('Clothing', 'Pants', 100.00)
-])
-
-# Query for Pants with matching criteria
-result = conn.execute(
-    "SELECT * FROM clothing WHERE category = 'Clothing' AND product = 'Pants' AND price = 100.00"
-).fetchall()
+# Create dynamic table from VALUES clause
+result = conn.execute('''
+SELECT * FROM (VALUES
+    ('Electronics', 'Laptop', 1200.50),
+    ('Electronics', 'Smartphone', 800.75),
+    ('Clothing', 'Shirt', 50.00)
+) AS t(category, product, amount)
+WHERE category = 'Electronics'
+''').fetchall()
 
 print(result)
