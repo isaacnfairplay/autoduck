@@ -1,28 +1,37 @@
-# Generated: 2025-03-19 21:39:59.377303
-# Result: [('Clothing', '2023-Q1', 2300, 2300, 1), ('Clothing', '2023-Q2', 2100, 4400, 2), ('Electronics', '2023-Q2', 1800, 3300, 3), ('Electronics', '2023-Q1', 1500, 1500, 4)]
+# Generated: 2025-03-19 21:41:00.228527
+# Result: [('New York', 8400000, 'Northeast'), ('Los Angeles', 3900000, 'West')]
 # Valid: True
+# Variable city: Type: tuple
+# Attributes/Methods: count, index
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create sample sales data with different product categories
-conn.execute("""CREATE TABLE sales AS
-    SELECT 'Electronics' as category, 1500 as revenue, '2023-Q1' as quarter
-    UNION ALL
-    SELECT 'Clothing', 2300, '2023-Q1'
-    UNION ALL
-    SELECT 'Electronics', 1800, '2023-Q2'
-    UNION ALL
-    SELECT 'Clothing', 2100, '2023-Q2'""")
+# Create a table with geographic data
+conn.execute("""
+CREATE TABLE cities (
+    city_name VARCHAR,
+    population INTEGER,
+    region VARCHAR,
+    latitude DOUBLE,
+    longitude DOUBLE
+)""")
 
-# Analyze sales using window functions and aggregations
-result = conn.execute("""SELECT 
-    category, 
-    quarter, 
-    revenue,
-    SUM(revenue) OVER (PARTITION BY category ORDER BY quarter) as cumulative_revenue,
-    RANK() OVER (ORDER BY revenue DESC) as revenue_rank
-FROM sales""").fetchall()
+# Insert sample data about global cities
+conn.execute("""
+INSERT INTO cities VALUES
+    ('New York', 8400000, 'Northeast', 40.7128, -74.0060),
+    ('Los Angeles', 3900000, 'West', 34.0522, -118.2437),
+    ('Chicago', 2700000, 'Midwest', 41.8781, -87.6298)
+""")
 
-for row in result:
-    print(row)
+# Query to find cities with population over 3 million
+result = conn.execute("""
+SELECT city_name, population, region
+FROM cities
+WHERE population > 3000000
+ORDER BY population DESC
+""").fetchall()
+
+for city in result:
+    print(f"{city[0]}: {city[1]} people in {city[2]}")
