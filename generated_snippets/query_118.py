@@ -1,20 +1,35 @@
-# Generated: 2025-03-19 20:52:06.069794
-# Result: [([1, 4, 9, 16, 25],)]
+# Generated: 2025-03-19 20:53:48.864719
+# Result: [('Desktop', 'South', 'Q1', Decimal('35000.00'), Decimal('35000.00')), ('Desktop', 'South', 'Q2', Decimal('41000.00'), Decimal('76000.00')), ('Laptop', 'North', 'Q1', Decimal('50000.00'), Decimal('50000.00')), ('Laptop', 'North', 'Q2', Decimal('62000.00'), Decimal('112000.00'))]
 # Valid: True
 import duckdb
 
 conn = duckdb.connect(':memory:')
 
-# Create table with list column
+# Create a table with multiple dimensions
 conn.sql("""
-CREATE TABLE numbers AS
-SELECT [1, 2, 3, 4, 5] AS values
+CREATE TABLE sales (
+    product VARCHAR,
+    region VARCHAR,
+    quarter VARCHAR,
+    revenue DECIMAL(10, 2)
+);
+
+INSERT INTO sales VALUES
+('Laptop', 'North', 'Q1', 50000.00),
+('Desktop', 'South', 'Q1', 35000.00),
+('Laptop', 'North', 'Q2', 62000.00),
+('Desktop', 'South', 'Q2', 41000.00);
 """)
 
-# Transform list by squaring each element
+# Use window function to calculate cumulative revenue per region
 result = conn.sql("""
-SELECT array_transform(values, x -> x * x) AS squared_values
-FROM numbers
+SELECT 
+    product, 
+    region, 
+    quarter, 
+    revenue,
+    SUM(revenue) OVER (PARTITION BY region ORDER BY quarter) as cumulative_revenue
+FROM sales
 """).fetchall()
 
-print(result)  # Should output: [[1, 4, 9, 16, 25]]
+print(result)
