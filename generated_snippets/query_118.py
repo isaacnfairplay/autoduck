@@ -1,34 +1,23 @@
-# Generated: 2025-03-19 20:07:21.285411
-# Result: [(1, [[2, 4], [6, 8]]), (2, [[10, 12], [14, 16]])]
+# Generated: 2025-03-19 20:09:34.551867
+# Result: [(1, [11, 12, 13]), (2, [14, 15, 16])]
 # Valid: True
 import duckdb
 
-con = duckdb.connect(':memory:')
+conn = duckdb.connect(':memory:')
 
-# Create a complex multi-dimensional array transformation example
-con.execute('''
-CREATE TABLE nested_data (
-    id INTEGER,
-    nested_array INTEGER[][]
-);
+conn.execute('''
+CREATE TABLE numeric_arrays (id INTEGER, values INTEGER[]);
+INSERT INTO numeric_arrays VALUES
+    (1, [1, 2, 3]),
+    (2, [4, 5, 6]);
+''')
 
-INSERT INTO nested_data VALUES
-    (1, [[1, 2], [3, 4]]),
-    (2, [[5, 6], [7, 8]]);
-
-SELECT 
-    id, 
-    array_transform(nested_array, x -> array_transform(x, y -> y * 2)) AS doubled_array
-FROM nested_data;
-'''
-)
-
-result = con.execute('''
-SELECT 
-    id, 
-    array_transform(nested_array, x -> array_transform(x, y -> y * 2)) AS doubled_array
-FROM nested_data;
+result = conn.execute('''
+SELECT
+    id,
+    array_transform(values, x -> x + 10) AS transformed_values
+FROM numeric_arrays
 ''').fetchall()
 
 for row in result:
-    print(f"ID: {row[0]}, Transformed Array: {row[1]})")
+    print(f"ID: {row[0]}, Transformed: {row[1]})")
